@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scope-coverage"
+version = "1.0.0"
+description = "SCOPE — Spec Coverage Probe E2E: copertura statica delle suite E2E vs OpenAPI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pyyaml", "requests"]
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest"]
+
+[project.scripts]
+scope-inventory = "scope.inventory:main"
+scope-tags = "scope.tag_coverage:main"
+scope-report = "scope.report:main"
+scope-prune = "scope.prune:main"
+scope-runtime = "scope.runtime:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+scope = ["assets/*.js", "assets/*.css"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# pycodestyle errors/warnings, pyflakes, isort
+select = ["E", "F", "W", "I"]
+# E501 (line too long): il dashboard ha stringhe HTML lunghe per natura
+ignore = ["E501"]

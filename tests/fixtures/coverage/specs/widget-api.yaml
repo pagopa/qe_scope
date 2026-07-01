@@ -1,0 +1,27 @@
+openapi: 3.0.1
+info:
+  title: Widget API (fixture)
+  version: "1.0"
+paths:
+  /widgets:
+    # method "parameters" non-HTTP: deve essere ignorato da extract_endpoints
+    parameters:
+      - name: trace
+        in: header
+    post:
+      operationId: createWidget
+      responses:
+        "200": { description: ok }
+    get:
+      operationId: listWidgets
+      responses:
+        "200": { description: ok }
+  /widgets/{id}:
+    delete:
+      operationId: deleteWidget
+      responses:
+        "200": { description: ok }
+    # endpoint SENZA operationId: caso no-operationId
+    put:
+      responses:
+        "200": { description: ok }

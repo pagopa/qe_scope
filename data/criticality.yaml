@@ -1,0 +1,236 @@
+# criticality.yaml — peso degli endpoint per la copertura pesata (SCOPE)
+#
+# Risoluzione per precedenza (dalla più alta alla più bassa):
+#   operation > path > spec > service > default
+#
+# Stato iniziale: nessuna regola -> tutti gli endpoint pesano "standard" (1.0)
+# -> la copertura pesata COINCIDE con quella semplice (verifica dell'impianto).
+#
+# I pesi si possono calibrare anche dal dashboard (modifica live + "Esporta
+# criticality.yaml"): il file scaricato va salvato qui al posto di questo.
+
+classes:
+  core: 3.0        # endpoint business-critical
+  standard: 1.0    # default
+  marginal: 0.3    # endpoint accessori / deprecati
+
+default: standard
+
+rules: []
+# Esempi di regole (decommentare e adattare):
+# rules:
+#   - service: pn-delivery            # tutto il microservizio
+#     class: core
+#   - spec: api-external-b2b-pa       # tutta una spec
+#     class: core
+#   - path: "/delivery/requests*"     # glob sul path
+#     class: core
+#   - operation: getLegalFactById     # singolo endpoint (massima precedenza)
+#     class: marginal
+rules:
+  - service: pn-bff
+    class: marginal
+  - service: pn-delivery
+    class: core
+  - service: pn-delivery-push
+    class: core
+  - service: pn-paper-tracker
+    class: core
+  - service: pn-paper-channel
+    class: core
+  - service: pn-ss
+    class: standard
+  - operation: retrieveNotificationLegalFactsV20
+    class: standard
+  - operation: searchNotificationsFromTaxId
+    class: core
+  - operation: searchNotificationsAsDelegateFromInternalId
+    class: core
+  - service: interop-be-monorepo
+    class: core
+  - operation: getAorPracticesByIun
+    class: marginal
+  - operation: getAorPracticesByInternalId
+    class: marginal
+  - operation: getAorTransactionByOperationId
+    class: marginal
+  - operation: getActPracticesByIun
+    class: marginal
+  - operation: getActPracticesByInternalId
+    class: marginal
+  - operation: getActTransactionByOperationId
+    class: marginal
+  - operation: getAorTransactionByTransactionId
+    class: marginal
+  - operation: getActTransactionByTransactionId
+    class: marginal
+  - operation: notificationCceForEmail
+    class: marginal
+  - operation: analogDeliveryWorkflowTimeoutLegalFact
+    class: marginal
+  - operation: qrcodegenerator
+    class: marginal
+  - operation: restartAttempt
+    class: marginal
+  - operation: findPrivacyNoticeVersion
+    class: marginal
+  - operation: getPgUserGroupsPrivate
+    class: marginal
+  - operation: getPgUsersDetailsPrivate
+    class: marginal
+  - operation: getAllPgGroupsPrivate
+    class: marginal
+  - operation: getAllGroupsPrivate
+    class: marginal
+  - operation: putAdditionalLang
+    class: marginal
+  - operation: invalidatePaperCost
+    class: marginal
+  - operation: updateNotificationCost
+    class: marginal
+  - operation: notifyNotificationViewed
+    class: marginal
+  - operation: notifyNotificationRaddRetrieved
+    class: marginal
+  - operation: NotificationProcessCost
+    class: marginal
+  - operation: getLegalFactPrivate
+    class: marginal
+  - operation: getNotificationLegalFactsPrivate
+    class: marginal
+  - operation: getSchedulingAnalogDate
+    class: marginal
+  - operation: retrieveSequenceAndFinalStatus
+    class: marginal
+  - operation: initTracking
+    class: marginal
+  - operation: calculateCost
+    class: marginal
+  - operation: checkAddress
+    class: marginal
+  - operation: initNotificationRework
+    class: marginal
+  - operation: sendInformalPrepareRequest
+    class: marginal
+  - operation: getPcRetry
+    class: marginal
+  - operation: sendPaperSendRequest
+    class: marginal
+  - operation: retrievePaperSendRequest
+    class: marginal
+  - operation: sendPaperPrepareRequest
+    class: marginal
+  - operation: retrievePaperPrepareRequest
+    class: marginal
+  - operation: retrieveTrackingOutputs
+    class: marginal
+  - operation: retrieveTrackings
+    class: marginal
+  - operation: getReceivedMessage
+    class: marginal
+  - operation: setRequestMetadataMessageId
+    class: marginal
+  - operation: healthCheck
+    class: marginal
+  - operation: getOrganizationDebtPositions
+    class: marginal
+  - operation: patchRequest
+    class: marginal
+  - operation: deleteRequest
+    class: marginal
+  - operation: setMessageIdInRequestMetadata
+    class: marginal
+  - operation: getRequestByMessageId
+    class: marginal
+  - operation: getRequestMetadataByMessageId
+    class: marginal
+  - operation: insertRequest
+    class: marginal
+  - operation: insertDiscardedEvents
+    class: marginal
+  - operation: updateClient
+    class: marginal
+  - operation: getClient
+    class: marginal
+  - operation: deleteClient
+    class: marginal
+  - operation: insertClient
+    class: marginal
+  - operation: notificationAarRaddAlt
+    class: marginal
+  - operation: notificationAarForSubject
+    class: marginal
+  - operation: notificationAarForSmsDigital
+    class: marginal
+  - operation: notificationAarForSmsAnalog
+    class: marginal
+  - operation: notificationAarForPec
+    class: marginal
+  - operation: notificationAarForEmailDigital
+    class: marginal
+  - operation: notificationAarForEmailAnalog
+    class: marginal
+  - operation: notificationAar
+    class: marginal
+  - operation: malfunctionLegalFact
+    class: marginal
+  - operation: mailVerificationCodeSubject
+    class: marginal
+  - operation: mailVerificationCodeBody
+    class: marginal
+  - operation: createActOperation
+    class: marginal
+  - operation: numberOfUnreachableNotifications
+    class: marginal
+  - operation: getOperationStatus
+    class: marginal
+  - operation: createActOperationV2
+    class: marginal
+  - operation: getOperationV2
+    class: marginal
+  - operation: addStatusChangeEvent
+    class: marginal
+  - operation: currentStatus
+    class: marginal
+  - operation: getConfigurations
+    class: marginal
+  - operation: getDigitalCourtesyMessageStatus
+    class: marginal
+  - operation: getCourtesyShortMessageStatus
+    class: marginal
+  - operation: sendCourtesyShortMessage
+    class: marginal
+  - operation: getDigitalLegalMessageStatus
+    class: marginal
+  - operation: sendDigitalLegalMessage
+    class: marginal
+  - operation: getPaperEngageProgresses
+    class: marginal
+  - operation: sendPaperEngageRequest
+    class: marginal
+  - operation: healthcheck
+    class: marginal
+  - operation: createMultiplePositions
+    class: marginal
+  - operation: getOrganizationDebtPositionByIUPD
+    class: marginal
+  - operation: updatePosition
+    class: marginal
+  - operation: invalidatePosition
+    class: marginal
+  - operation: publishPosition
+    class: marginal
+  - operation: pecValidationContactsRejectBody
+    class: marginal
+  - operation: pecValidationContactsRejectSubject
+    class: marginal
+  - operation: pecValidationContactsSuccessBody
+    class: marginal
+  - operation: pecValidationContactsSuccessSubject
+    class: marginal
+  - operation: pecVerificationCodeBody
+    class: marginal
+  - operation: smsVerificationCodeBody
+    class: marginal
+  - operation: pecVerificationCodeSubject
+    class: marginal

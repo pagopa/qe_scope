@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>fixtures</groupId>
+  <artifactId>scope-coverage-fixture</artifactId>
+  <version>1.0.0</version>
+
+  <properties>
+    <!-- Var usata nelle inputSpec: verifica resolve_vars (multi-pass) -->
+    <pn.spec.branch>main</pn.spec.branch>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <executions>
+          <!-- Execution "latest" (nessun suffisso _vN) -->
+          <execution>
+            <id>generate-widget-client</id>
+            <configuration>
+              <inputSpec>https://raw.githubusercontent.com/pagopa/pn-widget/${pn.spec.branch}/docs/openapi/widget-api.yaml</inputSpec>
+              <apiPackage>it.pagopa.pn.client.b2b.generated.openapi.clients.widget.api</apiPackage>
+            </configuration>
+          </execution>
+          <!-- Execution versionata _v1 + spec dal nome "internal" -->
+          <execution>
+            <id>generate-store-v1</id>
+            <configuration>
+              <inputSpec>https://raw.githubusercontent.com/pagopa/pn-store/main/docs/openapi/api-internal-v1.yaml</inputSpec>
+              <apiPackage>it.pagopa.pn.client.b2b.generated.openapi.clients.store.api</apiPackage>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Plugin non-openapi: deve essere ignorato da extract_executions -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

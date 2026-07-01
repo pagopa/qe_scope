@@ -1,0 +1,29 @@
+name: SCOPE CI
+
+# Lint + golden test ad ogni push/PR. Le guardie --strict sull'inventario e
+# sulla copertura reale (ci-check.sh) richiedono il repo target pn-b2b-client
+# e NON girano qui: vanno agganciate a uno scheduler che ha accesso al repo
+# (SCOPE non fa operazioni remote). Qui si verifica il TOOL, non i dati.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (editable + dev)
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check src/ tests/
+      - name: Golden test (pytest)
+        run: pytest

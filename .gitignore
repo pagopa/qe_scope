@@ -1,0 +1,38 @@
+# Dati di esecuzione: non versionati (report + baseline del trend = stato locale)
+reports/*
+
+# Cache delle OpenAPI spec scaricate
+.spec-cache/
+
+# Report di esecuzione droppati a mano (ingest D2): contenuto non versionato,
+# struttura cartelle sì (.gitkeep)
+runtime/inbox/**
+!runtime/inbox/
+!runtime/inbox/send/
+!runtime/inbox/interop/
+!runtime/inbox/**/.gitkeep
+
+# Storia/ledger degli esiti ingeriti: dati di esecuzione, non versionati
+data/runtime-results.json
+data/runtime-ledger.json
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# macOS
+.DS_Store
+
+# Scaffolding preview locale
+.preview/
+
+# Nota di onboarding locale (non versionata)
+CLAUDE.md
+
+# Config locale con path della macchina (usa config.example.yaml come template)
+config.yaml

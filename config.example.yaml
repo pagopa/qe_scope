@@ -1,0 +1,11 @@
+# SCOPE — configurazione (template)
+#
+# Copia questo file in `config.yaml` e imposta il percorso locale del
+# repository dei test da analizzare:
+#
+#     cp config.example.yaml config.yaml
+#
+# In alternativa, usa la variabile d'ambiente SCOPE_TARGET_REPO (ha precedenza).
+# SCOPE lavora in sola lettura: non modifica mai il repository analizzato.
+
+target_repo: /percorso/al/repo/dei/test
