@@ -10,6 +10,12 @@ on:
     branches: ["**"]
   pull_request:
 
+# Permessi minimi per il GITHUB_TOKEN: il workflow fa solo lint + test,
+# non scrive nulla (né commit, né release, né commenti). Serve solo leggere
+# il codice per il checkout.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
