@@ -90,7 +90,7 @@ function renderEndpoints(suite, filterCat, search) {
     }
     const pills = Object.entries(svcCount)
       .sort((a,b) => b[1]-a[1])
-      .map(([svc,n]) => `<span class="svc-pill">${svc} <b>${n}</b></span>`)
+      .map(([svc,n]) => `<span class="svc-pill">${escapeHtml(svc)} <b>${n}</b></span>`)
       .join("");
     document.getElementById(`filter-svcs-${suite}`).innerHTML = pills;
   } else {
@@ -107,9 +107,9 @@ function renderEndpoints(suite, filterCat, search) {
       <td>${epExecBadge(suite, e)}</td>
       <td><span class="method m-${e.method}">${e.method}</span></td>
       <td class="path">${pathHtml(e.path)}</td>
-      <td class="opid opid-link" title="Apri il dettaglio dell'endpoint" onclick="showEndpoint('${suite}','${e.operation_id}','endpoints')">${e.operation_id}</td>
-      <td class="spec">${e.spec_name}</td>
-      <td class="vis">${e.visibility}</td>
+      <td class="opid opid-link" title="Apri il dettaglio dell'endpoint" onclick="showEndpoint('${suite}',${jsArg(e.operation_id)},'endpoints')">${escapeHtml(e.operation_id)}</td>
+      <td class="spec">${escapeHtml(e.spec_name)}</td>
+      <td class="vis">${escapeHtml(e.visibility)}</td>
       <td style="text-align:right">${depthHtml}</td>
       <td>${critSelect(suite, e)}</td>
     </tr>`;
@@ -192,7 +192,7 @@ function renderService(suite) {
       <b class="n">${c.never} mai impl.</b></span>
     <span class="svc-stats">Criticità servizio:
       <select class="crit-sel${svcOvr ? " overridden" : ""}" title="Assegna la classe a TUTTI gli endpoint del servizio (gli override per singolo endpoint restano prioritari)"
-        onchange="setSvcCrit('${suite}','${svc}',this.value)">${svcOpts}</select></span>`;
+        onchange="setSvcCrit('${suite}',${jsArg(svc)},this.value)">${svcOpts}</select></span>`;
 
   // Sort
   const dir = st.svcSortAsc ? 1 : -1;
@@ -213,10 +213,10 @@ function renderService(suite) {
     const tags = opTags[suite][e.operation_id] || [];
     let tagsHtml = "—";
     if (tags.length) {
-      const shown = tags.slice(0, 4).map(([t]) => `<span class="tag-chip">@${t}</span>`).join("");
+      const shown = tags.slice(0, 4).map(([t]) => `<span class="tag-chip">@${escapeHtml(t)}</span>`).join("");
       if (tags.length > 4) {
         const restId = `tagrest-${suite}-${idx}`;
-        const rest = tags.slice(4).map(([t]) => `<span class="tag-chip">@${t}</span>`).join("");
+        const rest = tags.slice(4).map(([t]) => `<span class="tag-chip">@${escapeHtml(t)}</span>`).join("");
         tagsHtml = `${shown}<span class="tag-more" onclick="toggleTags('${restId}', this, ${tags.length - 4})">+${tags.length - 4}</span><span class="tag-rest" id="${restId}">${rest}</span>`;
       } else {
         tagsHtml = shown;
@@ -225,7 +225,7 @@ function renderService(suite) {
     html += `<tr>
       <td><span class="method m-${e.method}">${e.method}</span></td>
       <td class="path">${pathHtml(e.path)}</td>
-      <td class="opid opid-link" title="Apri il dettaglio dell'endpoint" onclick="showEndpoint('${suite}','${e.operation_id}','services')">${e.operation_id}</td>
+      <td class="opid opid-link" title="Apri il dettaglio dell'endpoint" onclick="showEndpoint('${suite}',${jsArg(e.operation_id)},'services')">${escapeHtml(e.operation_id)}</td>
       <td><span class="cat-pill ${catClass}">${catLabel}</span></td>
       <td style="text-align:right">${depthHtml}</td>
       <td style="max-width:380px">${tagsHtml}</td>
@@ -379,21 +379,21 @@ function renderScenari(suite) {
     const epId = `scenrow-${suite}-${s.i}`;
     const tags = (s.tags || []).map(t =>
       `<span class="ep-chip" style="cursor:pointer" title="apri il tag"
-        onclick="switchTab('${suite}','tags');openTagDetail('${suite}',${jsArg(t)})">${t}</span>`).join("")
+        onclick="switchTab('${suite}','tags');openTagDetail('${suite}',${jsArg(t)})">${escapeHtml(t)}</span>`).join("")
       || '<span class="detail-sub">—</span>';
     const runs = s.runners || [];
     const runnersHtml = runs.length
-      ? runs.map(r => `<span class="ep-chip">${r}</span>`).join("")
+      ? runs.map(r => `<span class="ep-chip">${escapeHtml(r)}</span>`).join("")
       : `<span class="scen-orphan-badge">⚠ orfano</span>`;
     const tcId = s.tc_id
-      ? `<span class="scen-tcid" title="TC-ID: chiave di join coi report di esecuzione">${s.tc_id}</span>`
+      ? `<span class="scen-tcid" title="TC-ID: chiave di join coi report di esecuzione">${escapeHtml(s.tc_id)}</span>`
       : `<span class="scen-tcid none" title="Senza TC-ID: non agganciabile ai report di esecuzione">⚠ senza TC-ID</span>`;
     const esito = execBadge(s.exec);
     const errLine = (s.exec && s.exec.status === "KO" && s.exec.error)
       ? `<div class="scen-err" title="Primo step fallito nell'ultima esecuzione">✗ ${escapeHtml(s.exec.error)}</div>` : "";
     html += `<tr>
-        <td><div class="scen-name">${tcId}${s.name || "(senza nome)"}</div>
-            <a class="scen-file" href="${ideHref(suite, s.file, s.line)}">${s.file}:${s.line} ↗</a>${errLine}</td>
+        <td><div class="scen-name">${tcId}${escapeHtml(s.name || "(senza nome)")}</div>
+            <a class="scen-file" href="${escapeHtml(ideHref(suite, s.file, s.line))}">${escapeHtml(s.file)}:${s.line} ↗</a>${errLine}</td>
         <td style="vertical-align:top">${esito}</td>
         <td class="cell-chips-col"><div class="cell-chips">${tags}</div></td>
         <td style="text-align:right;vertical-align:top"><span class="scen-eps" data-eps="${epId}"
@@ -443,7 +443,7 @@ function scenRowsHtml(suite, idxs, q, shown, prefix) {
   let html = "", n = 0;
   for (const s of items.slice(0, shown)) {
     n++;
-    const fl = `${s.file}:${s.line}`;
+    const fl = escapeHtml(`${s.file}:${s.line}`);
     const ops = s.ops || [];
     const nLog = countLogical(ops);
     const epId = `${prefix}-${s.i}`;
@@ -452,11 +452,11 @@ function scenRowsHtml(suite, idxs, q, shown, prefix) {
         title="Endpoint coperti da questo scenario">${ops.length} ep${ops.length!==nLog?` · ${nLog} logici`:""} <span class="eps-arrow">▾</span></span>`;
     const esito = DATA[suite].execActive ? execBadge(s.exec) : "";
     html += `<div class="scen-row"><span class="scen-idx">${n}</span>`
-      + `<span class="scen-name">${s.name || "(senza nome)"}</span>`
+      + `<span class="scen-name">${escapeHtml(s.name || "(senza nome)")}</span>`
       + esito
       + epBadge
       + `<span class="scen-file" title="${fl}">${fl}</span>`
-      + `<a class="scen-open" href="${ideHref(suite, s.file, s.line)}">Apri ↗</a></div>`
+      + `<a class="scen-open" href="${escapeHtml(ideHref(suite, s.file, s.line))}">Apri ↗</a></div>`
       + `<div class="scen-eps-detail ep-list" id="${epId}" style="display:none">${epListHtml(suite, ops)}</div>`;
   }
   if (items.length > shown) {
@@ -481,7 +481,7 @@ function epListHtml(suite, ops) {
   DATA[suite].endpoints.forEach(e => cat[e.operation_id] = e.category);
   return ops.slice().sort().map(o => {
     const c = cat[o] === "phantom" ? " phantom" : "";
-    return `<span class="ep-chip${c}">${o}</span>`;
+    return `<span class="ep-chip${c}">${escapeHtml(o)}</span>`;
   }).join("");
 }
 
@@ -496,9 +496,9 @@ function epListByServiceHtml(suite, ops) {
   const names = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length || a.localeCompare(b));
   return names.map(s => {
     const chips = groups[s].sort().map(o =>
-      `<span class="ep-chip${cat[o] === "phantom" ? " phantom" : ""}">${o}</span>`).join("");
+      `<span class="ep-chip${cat[o] === "phantom" ? " phantom" : ""}">${escapeHtml(o)}</span>`).join("");
     return `<div class="ep-group">
-      <div class="ep-group-h">${s} <span class="detail-sub">(${groups[s].length})</span></div>
+      <div class="ep-group-h">${escapeHtml(s)} <span class="detail-sub">(${groups[s].length})</span></div>
       <div class="ep-list">${chips}</div>
     </div>`;
   }).join("");
@@ -521,7 +521,7 @@ function renderDetail(suite) {
     document.getElementById(`tag-detail-${suite}`).innerHTML = `
       <div class="detail-head">
         <button class="back-link" onclick="closeTagDetail('${suite}')">← Tutti i tag</button>
-        <span class="detail-title">${tag}</span>
+        <span class="detail-title">${escapeHtml(tag)}</span>
         <span class="detail-sub">${item.scenarios} scenari · ${nLog} endpoint logici${variantsNote}</span>
       </div>
       <div class="detail-section-title">Endpoint coperti (${nLog} logici), raggruppati per microservizio
@@ -545,7 +545,7 @@ function renderDetail(suite) {
     const shownTags = tags.slice(0, TAGCAP);
     const tagsHtml = tags.length
       ? shownTags.map(([t,n]) => `<span class="ep-chip" style="cursor:pointer" title="${n} scenari"
-          onclick="switchTab('${suite}','tags');openTagDetail('${suite}',${jsArg(t)})">${t}</span>`).join("")
+          onclick="switchTab('${suite}','tags');openTagDetail('${suite}',${jsArg(t)})">${escapeHtml(t)}</span>`).join("")
         + (tags.length > TAGCAP ? `<span class="detail-sub">+${tags.length - TAGCAP} altri</span>` : "")
       : `<span class="detail-sub">nessun tag lo raggiunge</span>`;
 
@@ -566,12 +566,12 @@ function renderDetail(suite) {
       <div class="detail-head">
         <button class="back-link" onclick="closeEpDetail('${suite}')">← Torna agli endpoint</button>
         <span class="method m-${e.method}">${e.method||""}</span>
-        <span class="detail-title">${e.path||op}</span>
+        <span class="detail-title">${escapeHtml(e.path||op)}</span>
         <span class="cat-pill ${catClass}">${catLabel}</span>
         ${epExecBadge(suite, e)}
       </div>
       <div class="detail-sub" style="margin-bottom:10px">
-        <b>${op}</b> · ${e.service||"?"} / ${e.spec_name||"?"} · ${e.visibility||""} · criticità: ${effCrit(suite,e)} (peso ${critWeight(effCrit(suite,e))})
+        <b>${escapeHtml(op)}</b> · ${escapeHtml(e.service||"?")} / ${escapeHtml(e.spec_name||"?")} · ${escapeHtml(e.visibility||"")} · criticità: ${effCrit(suite,e)} (peso ${critWeight(effCrit(suite,e))})
       </div>
       ${(DATA[suite].execActive && e.category === "real" && e.exec_run)
         ? `<div class="run-banner active" style="margin-bottom:10px" title="Run più recente che ha esercitato questo endpoint">📋 Ultima esecuzione: <b>${escapeHtml(e.exec_run)}</b>${e.exec_age != null ? ` · ${e.exec_age}g fa` : ""}</div>`
@@ -625,9 +625,9 @@ function suggestTagsHtml(suite, e) {
   const kindLabel = {family: "stessa famiglia di versione", service: "stesso microservizio"};
   const rows = sugg.map(s => `<div class="sugg-row">
       <span class="ep-chip" style="cursor:pointer" title="apri il tag"
-        onclick="switchTab('${suite}','tags');openTagDetail('${suite}',${jsArg(s.tag)})">${s.tag}</span>
+        onclick="switchTab('${suite}','tags');openTagDetail('${suite}',${jsArg(s.tag)})">${escapeHtml(s.tag)}</span>
       <span class="sugg-kind">${kindLabel[s.kind] || s.kind}</span>
-      <span class="detail-sub">${s.reason}</span>
+      <span class="detail-sub">${escapeHtml(s.reason)}</span>
     </div>`).join("");
   return `<div class="sugg-note">Suggerimento <b>basato sull'evidenza</b> nel grafo
     (non una proposta generata): ecco i tag più affini.</div>${rows}`;
@@ -638,7 +638,7 @@ function depthCell(suite, e, origin) {
   if (d === 0) return `<span class="depth depth-zero">—</span>`;
   const cls = d === 1 ? "depth depth-low" : (d >= 10 ? "depth depth-hi" : "depth");
   return `<span class="${cls} depth-link" title="Clicca per vedere gli scenari"
-    onclick="showEndpoint('${suite}','${e.operation_id}','${origin || "endpoints"}')">${d}</span>`;
+    onclick="showEndpoint('${suite}',${jsArg(e.operation_id)},'${origin || "endpoints"}')">${d}</span>`;
 }
 
 // ---------- Criticality (copertura pesata) ----------
@@ -703,7 +703,7 @@ function critSelect(suite, e) {
   const opts = Object.keys(CRIT.classes).map(c =>
     `<option value="${c}"${c === cur ? " selected" : ""}>${c}</option>`).join("");
   return `<select class="crit-sel crit-${cur}${ovr}" title="Classe di criticità (peso ${critWeight(cur)})"
-    onchange="setOpCrit('${suite}','${e.operation_id}',this.value)">${opts}</select>`;
+    onchange="setOpCrit('${suite}',${jsArg(e.operation_id)},this.value)">${opts}</select>`;
 }
 
 function saveCrit() {
