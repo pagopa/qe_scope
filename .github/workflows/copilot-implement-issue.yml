@@ -118,6 +118,7 @@ jobs:
     timeout-minutes: 10
 
     permissions:
+      actions: write
       contents: write
       issues: read
       pull-requests: write
@@ -179,8 +180,16 @@ jobs:
               --body-file "$RUNNER_TEMP/pr-body.md"
           )"
 
+          # Gli eventi generati con GITHUB_TOKEN non avviano altri workflow.
+          # workflow_dispatch è consentito e collega i check al commit del branch.
+          gh workflow run ci.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$BRANCH_NAME"
+
           {
             echo "## Draft Pull Request creata"
             echo
             echo "$PR_URL"
+            echo
+            echo "SCOPE CI avviata esplicitamente sul branch: $BRANCH_NAME"
           } >> "$GITHUB_STEP_SUMMARY"
