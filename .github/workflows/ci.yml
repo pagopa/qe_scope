@@ -9,8 +9,8 @@ on:
   push:
     branches: ["**"]
   pull_request:
-  # Le PR create con GITHUB_TOKEN non generano nuovi eventi push/pull_request.
-  # Il bot richiama quindi questa CI esplicitamente sul branch appena pubblicato.
+  # Le PR create con GITHUB_TOKEN non avviano normalmente questa CI.
+  # Il bot la richiama sul branch e pubblica sulla PR uno stato con il suo esito.
   workflow_dispatch:
 
 # Permessi minimi per il GITHUB_TOKEN: il workflow fa solo lint + test,
