@@ -189,7 +189,7 @@ jobs:
           )"
 
           HEAD_SHA="$(git rev-parse HEAD)"
-          STATUS_CONTEXT="SCOPE CI / bot PR"
+          STATUS_CONTEXT="SCOPE CI / required"
 
           set_ci_status() {
             local state="$1"

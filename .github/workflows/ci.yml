@@ -13,9 +13,9 @@ on:
   # Il bot la richiama sul branch e pubblica sulla PR uno stato con il suo esito.
   workflow_dispatch:
 
-# Permessi minimi per il GITHUB_TOKEN: il workflow fa solo lint + test,
-# non scrive nulla (né commit, né release, né commenti). Serve solo leggere
-# il codice per il checkout.
+# Permessi minimi per il GITHUB_TOKEN: la matrice legge il codice; il job finale
+# pubblica un unico commit status, usato dal ruleset sia per le PR umane sia per
+# quelle create dal bot.
 permissions:
   contents: read
 
@@ -36,3 +36,38 @@ jobs:
         run: ruff check src/ tests/
       - name: Golden test (pytest)
         run: pytest
+
+  required-status:
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Publish required CI status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEST_RESULT: ${{ needs.test.result }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$TEST_RESULT" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="CI ordinaria completata"
+          else
+            STATE="failure"
+            DESCRIPTION="CI ordinaria non superata"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/$GITHUB_REPOSITORY/statuses/$TARGET_SHA" \
+            -f state="$STATE" \
+            -f context="SCOPE CI / required" \
+            -f description="$DESCRIPTION" \
+            -f target_url="$TARGET_URL" \
+            > /dev/null
+
+          test "$STATE" = "success"
