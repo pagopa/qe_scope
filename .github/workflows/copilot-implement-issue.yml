@@ -1,0 +1,186 @@
+name: Copilot implement issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Numero della GitHub issue"
+        required: true
+        default: "3"
+
+concurrency:
+  group: copilot-issue-${{ inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      issues: read
+      copilot-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          npm install -g @github/copilot
+          python -m pip install -e ".[dev]"
+
+      - name: Load authorized issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          gh issue view "$ISSUE_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json number,title,body,url,labels \
+            > "$RUNNER_TEMP/issue.json"
+
+          jq -e \
+            '.labels | any(.name | ascii_downcase == "ready-for-ai")' \
+            "$RUNNER_TEMP/issue.json"
+
+          {
+            echo "Implementa la GitHub issue riportata di seguito."
+            echo "Puoi creare o modificare esclusivamente:"
+            echo ".github/copilot-instructions.md"
+            echo
+            echo "Non modificare nessun altro file."
+            echo "CLAUDE.md è intenzionalmente locale e non versionato."
+            echo "Usa README.md e ARCHITECTURE.md come fonti."
+            echo
+            echo "Titolo:"
+            jq -r '.title' "$RUNNER_TEMP/issue.json"
+            echo
+            echo "Descrizione:"
+            jq -r '.body' "$RUNNER_TEMP/issue.json"
+          } > "$RUNNER_TEMP/copilot-prompt.txt"
+
+      - name: Generate change with Copilot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          copilot \
+            --silent \
+            --no-ask-user \
+            --allow-tool='write(.github/copilot-instructions.md)' \
+            < "$RUNNER_TEMP/copilot-prompt.txt" \
+            | tee "$RUNNER_TEMP/copilot-output.txt"
+
+      - name: Validate changed files
+        run: |
+          test -f .github/copilot-instructions.md
+
+          git add -A
+          CHANGED_FILES="$(git diff --cached --name-only)"
+
+          if [ "$CHANGED_FILES" != ".github/copilot-instructions.md" ]; then
+            echo "Copilot ha modificato file non autorizzati:"
+            echo "$CHANGED_FILES"
+            exit 1
+          fi
+
+      - name: Run quality checks
+        run: |
+          pytest
+          ruff check src/ tests/
+
+      - name: Create patch
+        run: git diff --cached --binary > copilot.patch
+
+      - name: Upload validated patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilot-change
+          path: copilot.patch
+          retention-days: 1
+
+  publish:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Download validated patch
+        uses: actions/download-artifact@v4
+        with:
+          name: copilot-change
+          path: ${{ runner.temp }}/copilot-change
+
+      - name: Create branch, commit and Draft PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          BRANCH_NAME="copilot/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
+
+          git switch -c "$BRANCH_NAME"
+          git apply --index "$RUNNER_TEMP/copilot-change/copilot.patch"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git commit -m "docs: add Copilot repository instructions"
+          git push --set-upstream origin "$BRANCH_NAME"
+
+          ISSUE_TITLE="$(
+            gh issue view "$ISSUE_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json title \
+              --jq '.title'
+          )"
+
+          {
+            echo "Relates to #${ISSUE_NUMBER}"
+            echo
+            echo "Modifica generata da GitHub Copilot CLI."
+            echo
+            echo "Controlli eseguiti:"
+            echo "- pytest"
+            echo "- ruff check src/ tests/"
+            echo
+            echo "La Pull Request resta Draft e richiede revisione umana."
+          } > "$RUNNER_TEMP/pr-body.md"
+
+          PR_URL="$(
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$BRANCH_NAME" \
+              --draft \
+              --title "$ISSUE_TITLE" \
+              --body-file "$RUNNER_TEMP/pr-body.md"
+          )"
+
+          {
+            echo "## Draft Pull Request creata"
+            echo
+            echo "$PR_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
