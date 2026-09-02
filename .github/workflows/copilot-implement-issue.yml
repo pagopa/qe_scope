@@ -167,7 +167,7 @@ jobs:
           )"
 
           {
-            echo "Relates to #${ISSUE_NUMBER}"
+            echo "Closes #${ISSUE_NUMBER}"
             echo
             echo "Modifica generata da GitHub Copilot CLI."
             echo
