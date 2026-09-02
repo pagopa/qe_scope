@@ -22,3 +22,12 @@ SCOPE (Spec COverage Probe E2E) misura quanto le suite di test E2E coprono le AP
 
 - Non modificare configurazioni CI senza necessità.
 - `config.yaml`, `reports/`, `data/runtime-*.json` non sono versionati: non presumere che esistano.
+
+## Tracciabilità
+
+Ogni Pull Request generata deve riportare:
+
+- **Jira key** nel titolo o nella descrizione della PR;
+- **collegamento alla card Jira** corrispondente;
+- **descrizione dei test eseguiti** per validare la modifica;
+- **indicazione esplicita delle verifiche non eseguite**, se presenti.
