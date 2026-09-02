@@ -145,4 +145,4 @@ Per capire **come SCOPE è costruito internamente** (modello, pipeline, parser J
 
 ## Licenza
 
-Vedi il file `LICENSE` (se presente nel repository).
+Vedi il file `LICENSE`.
