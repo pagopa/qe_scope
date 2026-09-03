@@ -62,6 +62,8 @@ def select_dirs_to_prune(names, today):
 def select_dashboards_to_prune(names, keep=KEEP_DASHBOARDS):
     """Funzione PURA. Dei dashboard HTML in reports/html/ tiene i `keep` più
     recenti (per timestamp nel nome) ed elimina i rimanenti."""
+    if keep < 0:
+        raise ValueError(f"keep non può essere negativo: {keep}")
     dated = []
     for name in names:
         m = DASH_RE.match(name)
