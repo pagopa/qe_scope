@@ -67,11 +67,15 @@ jobs:
           {
             echo "Implementa la GitHub issue riportata di seguito."
             echo "Puoi creare o modificare esclusivamente:"
-            echo ".github/copilot-instructions.md"
+            echo "- codice applicativo sotto src/scope/"
+            echo "- test e fixture sotto tests/"
             echo
-            echo "Non modificare nessun altro file."
-            echo "CLAUDE.md è intenzionalmente locale e non versionato."
-            echo "Usa README.md e ARCHITECTURE.md come fonti."
+            echo "Non modificare file fuori da queste directory."
+            echo "In particolare non modificare workflow, dipendenze, script,"
+            echo "configurazioni, dati operativi o istruzioni dell'agente."
+            echo "Leggi .github/copilot-instructions.md, README.md e"
+            echo "ARCHITECTURE.md prima di intervenire."
+            echo "Mantieni la modifica piccola e aggiungi o aggiorna i test necessari."
             echo
             echo "Titolo:"
             jq -r '.title' "$RUNNER_TEMP/issue.json"
@@ -80,6 +84,14 @@ jobs:
             jq -r '.body' "$RUNNER_TEMP/issue.json"
           } > "$RUNNER_TEMP/copilot-prompt.txt"
 
+      # Copilot può scrivere soltanto nelle directory rese modificabili qui.
+      # Il runner è effimero e non contiene credenziali con accesso in scrittura
+      # al repository durante la generazione.
+      - name: Restrict workspace writes
+        run: |
+          chmod -R a-w .
+          chmod -R u+w src/scope tests
+
       - name: Generate change with Copilot
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -87,22 +99,64 @@ jobs:
           copilot \
             --silent \
             --no-ask-user \
-            --allow-tool='write(.github/copilot-instructions.md)' \
+            --available-tools='view,grep,glob,edit,create,apply_patch' \
+            --allow-tool='write' \
             < "$RUNNER_TEMP/copilot-prompt.txt" \
             | tee "$RUNNER_TEMP/copilot-output.txt"
 
+      - name: Restore workspace permissions
+        if: always()
+        run: chmod -R u+w .
+
       - name: Validate changed files
         run: |
-          test -f .github/copilot-instructions.md
-
           git add -A
-          CHANGED_FILES="$(git diff --cached --name-only)"
+          CHANGED_FILES="$(git diff --cached --no-renames --name-only)"
 
-          if [ "$CHANGED_FILES" != ".github/copilot-instructions.md" ]; then
-            echo "Copilot ha modificato file non autorizzati:"
-            echo "$CHANGED_FILES"
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "Copilot non ha prodotto alcuna modifica."
             exit 1
           fi
+
+          CHANGED_COUNT="$(printf '%s\n' "$CHANGED_FILES" | wc -l | tr -d ' ')"
+          if [ "$CHANGED_COUNT" -gt 12 ]; then
+            echo "Troppi file modificati: $CHANGED_COUNT (massimo 12)."
+            exit 1
+          fi
+
+          while IFS= read -r file; do
+            case "$file" in
+              src/scope/*|tests/*)
+                ;;
+              *)
+                echo "File non autorizzato: $file"
+                exit 1
+                ;;
+            esac
+
+            MODE="$(git ls-files --stage -- "$file" | awk 'NR == 1 { print $1 }')"
+            if [ "$MODE" = "120000" ] || [ "$MODE" = "160000" ]; then
+              echo "Symlink o submodule non autorizzato: $file"
+              exit 1
+            fi
+          done <<< "$CHANGED_FILES"
+
+          if git diff --cached --numstat | grep -q $'^-	-	'; then
+            echo "I file binari non sono autorizzati."
+            exit 1
+          fi
+
+          CHANGED_LINES="$(
+            git diff --cached --numstat |
+              awk '{ added += $1; deleted += $2 } END { print added + deleted }'
+          )"
+          if [ "$CHANGED_LINES" -gt 800 ]; then
+            echo "Modifica troppo ampia: $CHANGED_LINES righe (massimo 800)."
+            exit 1
+          fi
+
+          echo "Modifica autorizzata: $CHANGED_COUNT file, $CHANGED_LINES righe."
+          printf '%s\n' "$CHANGED_FILES"
 
       - name: Run quality checks
         run: |
@@ -156,7 +210,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git commit -m "docs: add Copilot repository instructions"
+          git commit -m "ai: implement issue #${ISSUE_NUMBER}"
           git push --set-upstream origin "$BRANCH_NAME"
 
           ISSUE_TITLE="$(
