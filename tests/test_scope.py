@@ -1287,6 +1287,11 @@ class TestPruneDashboards(unittest.TestCase):
         self.assertEqual(prune_reports.select_dashboards_to_prune(names, keep=0),
                          ["coverage-dashboard-20260614_120000.html"])
 
+    def test_negative_keep_raises_value_error(self):
+        names = ["coverage-dashboard-20260614_120000.html"]
+        with self.assertRaises(ValueError):
+            prune_reports.select_dashboards_to_prune(names, keep=-1)
+
 
 # ===========================================================================
 # F7 — Invariante reachable ⊆ static (directly_invoked) anche con le FAMIGLIE
