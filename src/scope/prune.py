@@ -67,8 +67,14 @@ def select_dashboards_to_prune(names, keep=KEEP_DASHBOARDS):
     dated = []
     for name in names:
         m = DASH_RE.match(name)
-        if m:
-            dated.append((m.group(1), name))
+        if not m:
+            continue
+        ts = m.group(1)
+        try:
+            datetime.strptime(ts, "%Y%m%d_%H%M%S")
+        except ValueError:
+            continue                       # timestamp non valido: ignorato
+        dated.append((ts, name))
     dated.sort()                           # timestamp crescente
     # NB: dated[:-keep] è SBAGLIATO per keep=0 (diventa dated[:0]=vuoto).
     cut = len(dated) - keep

@@ -1292,6 +1292,17 @@ class TestPruneDashboards(unittest.TestCase):
         with self.assertRaises(ValueError):
             prune_reports.select_dashboards_to_prune(names, keep=-1)
 
+    def test_ignores_invalid_timestamp(self):
+        # 20261340 non è una data valida (mese 13), pur rispettando il formato
+        names = ["coverage-dashboard-20261340_256199.html",
+                 "coverage-dashboard-20260614_120000.html"]
+        # il file con timestamp non valido non viene mai eliminato né considerato
+        victims = prune_reports.select_dashboards_to_prune(names, keep=0)
+        self.assertEqual(victims, ["coverage-dashboard-20260614_120000.html"])
+        self.assertNotIn("coverage-dashboard-20261340_256199.html", victims)
+        # con keep sufficiente il file valido resta, quello non valido è ignorato
+        self.assertEqual(prune_reports.select_dashboards_to_prune(names, keep=3), [])
+
 
 # ===========================================================================
 # F7 — Invariante reachable ⊆ static (directly_invoked) anche con le FAMIGLIE
