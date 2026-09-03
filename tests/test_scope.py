@@ -1275,6 +1275,17 @@ class TestPruneSelection(unittest.TestCase):
         self.assertNotIn("20261340_120000_send", victims)
         self.assertEqual(victims, ["20260601_080000_send"])
 
+    def test_invalid_time_dirs_are_ignored(self):
+        # 20260614_256199_send: data valida (14/06/2026) ma ora impossibile
+        # (25:61:99 non è un orario valido)
+        names = [
+            "20260614_256199_send",
+            "20260601_080000_send", "20260601_090000_send",
+        ]
+        victims = prune_reports.select_dirs_to_prune(names, self.TODAY)
+        self.assertNotIn("20260614_256199_send", victims)
+        self.assertEqual(victims, ["20260601_080000_send"])
+
 
 class TestPruneDashboards(unittest.TestCase):
 
