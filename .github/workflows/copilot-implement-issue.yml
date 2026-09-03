@@ -198,6 +198,7 @@ jobs:
           path: ${{ runner.temp }}/copilot-change
 
       - name: Create branch, commit and Draft PR
+        id: publish-pr
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
@@ -218,6 +219,10 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --json title \
               --jq '.title'
+          )"
+          JIRA_KEY="$(
+            printf '%s\n' "$ISSUE_TITLE" |
+              sed -nE 's/^\[([A-Z][A-Z0-9_]*-[0-9]+)\].*/\1/p'
           )"
 
           {
@@ -241,6 +246,11 @@ jobs:
               --title "$ISSUE_TITLE" \
               --body-file "$RUNNER_TEMP/pr-body.md"
           )"
+
+          {
+            echo "jira_key=$JIRA_KEY"
+            echo "pr_url=$PR_URL"
+          } >> "$GITHUB_OUTPUT"
 
           HEAD_SHA="$(git rev-parse HEAD)"
           STATUS_CONTEXT="SCOPE CI / required"
@@ -317,3 +327,39 @@ jobs:
             echo
             echo "SCOPE CI completata e pubblicata sulla PR: $CI_URL"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify Jira that the Draft PR was created
+        if: >-
+          always() &&
+          steps.publish-pr.outputs.jira_key != '' &&
+          steps.publish-pr.outputs.pr_url != ''
+        env:
+          JIRA_WEBHOOK_URL: ${{ secrets.JIRA_AUTOMATION_WEBHOOK_URL }}
+          JIRA_WEBHOOK_SECRET: ${{ secrets.JIRA_AUTOMATION_WEBHOOK_SECRET }}
+          JIRA_KEY: ${{ steps.publish-pr.outputs.jira_key }}
+          PR_URL: ${{ steps.publish-pr.outputs.pr_url }}
+        run: |
+          test -n "$JIRA_WEBHOOK_URL"
+          test -n "$JIRA_WEBHOOK_SECRET"
+
+          PAYLOAD="$(
+            jq -n \
+              --arg jiraKey "$JIRA_KEY" \
+              --arg event "pr_created" \
+              --arg prUrl "$PR_URL" \
+              '{jiraKey: $jiraKey, event: $event, prUrl: $prUrl}'
+          )"
+
+          curl \
+            --request POST \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "Content-Type: application/json" \
+            --header "X-Automation-Webhook-Token: $JIRA_WEBHOOK_SECRET" \
+            --data "$PAYLOAD" \
+            "$JIRA_WEBHOOK_URL"
