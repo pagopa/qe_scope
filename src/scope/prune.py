@@ -47,6 +47,10 @@ def select_dirs_to_prune(names, today):
         if not m:
             continue                       # html, trend-baseline.txt, ecc.
         day, time, kind = m.group(1), m.group(2), m.group(3)
+        try:
+            datetime.strptime(day + "_" + time, "%Y%m%d_%H%M%S")
+        except ValueError:
+            continue                       # timestamp non valido: ignorato
         if day == today:
             continue                       # oggi: si tiene tutto
         groups[(day, kind)].append((day + time, name))
