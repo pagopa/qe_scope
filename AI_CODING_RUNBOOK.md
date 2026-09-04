@@ -18,18 +18,9 @@ Una persona decide sempre se richiedere modifiche, approvare, unire o rifiutare 
 
 ## Flusso in sintesi
 
-```mermaid
-flowchart LR
-    A[In Progress<br/>Story preparata] -->|AI Approver| B[Ready for AI]
-    B -->|Issue + Copilot| C[In Review<br/>Draft PR]
-    C -->|Request changes| A
-    A -->|Nuove istruzioni| B
-    C -->|Merge in main| D[Done]
-    C -->|Close senza merge| A
-    B -.->|Errore agente| A
-    A -->|Sospensione| E[Blocked]
-    E -->|Decisione definitiva| F[Rejected]
-```
+![Workflow AI Coding SCOPE](AI_CODING_WORKFLOW.svg)
+
+[Apri il diagramma SVG modificabile](AI_CODING_WORKFLOW.svg)
 
 ## Ruoli e responsabilità
 
