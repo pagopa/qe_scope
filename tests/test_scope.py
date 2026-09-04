@@ -872,6 +872,49 @@ class TestSharedConfig(unittest.TestCase):
             if prev is not None:
                 os.environ["SCOPE_TARGET_REPO"] = prev
 
+    def test_runtime_window_default_when_unset(self):
+        """SCOPE_RUNTIME_WINDOW assente -> default 30."""
+        import os
+        prev = os.environ.pop("SCOPE_RUNTIME_WINDOW", None)
+        try:
+            self.assertEqual(scope_config._resolve_runtime_window_days(), 30)
+        finally:
+            if prev is not None:
+                os.environ["SCOPE_RUNTIME_WINDOW"] = prev
+
+    def test_runtime_window_valid_integer(self):
+        """SCOPE_RUNTIME_WINDOW con intero valido -> quel valore."""
+        import os
+        prev = os.environ.get("SCOPE_RUNTIME_WINDOW")
+        os.environ["SCOPE_RUNTIME_WINDOW"] = "45"
+        try:
+            self.assertEqual(scope_config._resolve_runtime_window_days(), 45)
+        finally:
+            if prev is None:
+                os.environ.pop("SCOPE_RUNTIME_WINDOW", None)
+            else:
+                os.environ["SCOPE_RUNTIME_WINDOW"] = prev
+
+    def test_runtime_window_invalid_value_warns_and_falls_back(self):
+        """QA-17084: valore non numerico -> nessuna eccezione, default 30,
+        avviso comprensibile su stderr."""
+        import contextlib
+        import io
+        import os
+        prev = os.environ.get("SCOPE_RUNTIME_WINDOW")
+        os.environ["SCOPE_RUNTIME_WINDOW"] = "abc"
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                result = scope_config._resolve_runtime_window_days()
+            self.assertEqual(result, 30)
+            self.assertIn("SCOPE_RUNTIME_WINDOW", err.getvalue())
+        finally:
+            if prev is None:
+                os.environ.pop("SCOPE_RUNTIME_WINDOW", None)
+            else:
+                os.environ["SCOPE_RUNTIME_WINDOW"] = prev
+
 
 # ===========================================================================
 # F5 — Smoke test della generazione HTML (report-html.py)
