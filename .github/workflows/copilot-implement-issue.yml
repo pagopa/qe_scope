@@ -49,6 +49,7 @@ jobs:
         run: |
           npm install -g @github/copilot
           python -m pip install -e ".[dev]"
+          copilot version > "$RUNNER_TEMP/copilot-cli-version.txt"
 
       - name: Load authorized issue
         env:
@@ -95,7 +96,14 @@ jobs:
       - name: Generate change with Copilot
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          COPILOT_OTEL_ENABLED: "true"
+          COPILOT_OTEL_EXPORTER_TYPE: file
+          COPILOT_OTEL_FILE_EXPORTER_PATH: ${{ runner.temp }}/copilot-otel.jsonl
+          OTEL_SERVICE_NAME: scope-copilot-implement
+          OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: "false"
+          OTEL_RESOURCE_ATTRIBUTES: github.repository=${{ github.repository }},github.run_id=${{ github.run_id }},github.run_attempt=${{ github.run_attempt }}
         run: |
+          date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/copilot-started-at.txt"
           copilot \
             --silent \
             --no-ask-user \
@@ -107,6 +115,33 @@ jobs:
       - name: Restore workspace permissions
         if: always()
         run: chmod -R u+w .
+
+      - name: Build Copilot technical report
+        if: always()
+        continue-on-error: true
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/copilot-finished-at.txt"
+          python .github/scripts/extract_copilot_telemetry.py \
+            --telemetry "$RUNNER_TEMP/copilot-otel.jsonl" \
+            --issue "$RUNNER_TEMP/issue.json" \
+            --cli-version "$RUNNER_TEMP/copilot-cli-version.txt" \
+            --started-at "$RUNNER_TEMP/copilot-started-at.txt" \
+            --finished-at "$RUNNER_TEMP/copilot-finished-at.txt" \
+            --output "$RUNNER_TEMP/copilot-technical-report.json"
+          cat "$RUNNER_TEMP/copilot-technical-report.json"
+
+      - name: Upload Copilot technical report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilot-technical-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/copilot-technical-report.json
+            ${{ runner.temp }}/copilot-otel.jsonl
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Validate changed files
         run: |
