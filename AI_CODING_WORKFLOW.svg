@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1040" viewBox="0 0 1800 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Workflow AI Coding SCOPE</title>
+  <desc id="desc">Flusso human-in-the-loop da Jira a GitHub Copilot, con review, rilavorazione, gestione degli errori, merge e rifiuto definitivo.</desc>
+
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .lane { fill: #ffffff; stroke: #d8e0ea; stroke-width: 2; }
+      .phase { font: 700 15px Inter, Arial, sans-serif; letter-spacing: 1.8px; fill: #64748b; }
+      .title { font: 700 38px Inter, Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 19px Inter, Arial, sans-serif; fill: #475569; }
+      .node-title { font: 700 18px Inter, Arial, sans-serif; fill: #ffffff; letter-spacing: .3px; }
+      .node-copy { font: 400 15px Inter, Arial, sans-serif; fill: #ffffff; }
+      .node-copy-dark { font: 400 15px Inter, Arial, sans-serif; fill: #263244; }
+      .node-title-dark { font: 700 18px Inter, Arial, sans-serif; fill: #172033; letter-spacing: .3px; }
+      .edge-label { font: 600 14px Inter, Arial, sans-serif; fill: #344256; }
+      .edge-label-small { font: 500 13px Inter, Arial, sans-serif; fill: #526174; }
+      .footer { font: 500 14px Inter, Arial, sans-serif; fill: #64748b; }
+      .human { fill: #d97706; stroke: #b45309; stroke-width: 2; }
+      .jira { fill: #1d4ed8; stroke: #1e40af; stroke-width: 2; }
+      .github { fill: #334155; stroke: #1e293b; stroke-width: 2; }
+      .agent { fill: #7c3aed; stroke: #6d28d9; stroke-width: 2; }
+      .guard { fill: #0f766e; stroke: #0f5f59; stroke-width: 2; }
+      .success { fill: #15803d; stroke: #166534; stroke-width: 2; }
+      .warning { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; }
+      .blocked { fill: #f1f5f9; stroke: #64748b; stroke-width: 2; }
+      .rejected { fill: #7f1d1d; stroke: #691717; stroke-width: 2; }
+      .arrow { fill: none; stroke: #475569; stroke-width: 3; marker-end: url(#arrow); }
+      .arrow-green { fill: none; stroke: #15803d; stroke-width: 3; marker-end: url(#arrow-green); }
+      .arrow-orange { fill: none; stroke: #c2410c; stroke-width: 3; marker-end: url(#arrow-orange); }
+      .arrow-red { fill: none; stroke: #991b1b; stroke-width: 3; marker-end: url(#arrow-red); }
+      .arrow-loop { fill: none; stroke: #7c3aed; stroke-width: 3; stroke-dasharray: 9 7; marker-end: url(#arrow-purple); }
+      .legend-text { font: 600 13px Inter, Arial, sans-serif; fill: #475569; }
+      .shadow { filter: url(#shadow); }
+    </style>
+
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0f172a" flood-opacity=".12"/>
+    </filter>
+
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#15803d"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c2410c"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#991b1b"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <rect class="canvas" width="1800" height="1040"/>
+
+  <g id="header">
+    <text class="title" x="72" y="70">AI Coding workflow</text>
+    <text class="subtitle" x="72" y="104">Dalla card Jira al codice in produzione, con controllo umano e tracciabilità end-to-end</text>
+  </g>
+
+  <g id="legend" transform="translate(1198 48)">
+    <rect x="0" y="0" width="530" height="72" rx="18" fill="#ffffff" stroke="#d8e0ea"/>
+    <circle cx="28" cy="25" r="8" fill="#1d4ed8"/><text class="legend-text" x="44" y="30">Jira</text>
+    <circle cx="116" cy="25" r="8" fill="#7c3aed"/><text class="legend-text" x="132" y="30">AI</text>
+    <circle cx="188" cy="25" r="8" fill="#d97706"/><text class="legend-text" x="204" y="30">Decisione umana</text>
+    <circle cx="340" cy="25" r="8" fill="#15803d"/><text class="legend-text" x="356" y="30">Completato</text>
+    <circle cx="448" cy="25" r="8" fill="#7f1d1d"/><text class="legend-text" x="464" y="30">Rifiutato</text>
+    <text class="legend-text" x="28" y="55">Le frecce tratteggiate indicano il ciclo di rilavorazione.</text>
+  </g>
+
+  <g id="main-lane">
+    <rect class="lane" x="48" y="146" width="1704" height="322" rx="28"/>
+    <text class="phase" x="76" y="184">PREPARAZIONE E PRODUZIONE</text>
+
+    <g id="in-progress" class="shadow">
+      <rect class="jira" x="76" y="230" width="224" height="142" rx="20"/>
+      <text class="node-title" x="188" y="270" text-anchor="middle">IN PROGRESS</text>
+      <text class="node-copy" x="188" y="302" text-anchor="middle">Scope e criteri</text>
+      <text class="node-copy" x="188" y="326" text-anchor="middle">di accettazione</text>
+      <text class="node-copy" x="188" y="350" text-anchor="middle">definiti dal team</text>
+    </g>
+
+    <g id="ready-for-ai" class="shadow">
+      <rect class="human" x="356" y="230" width="224" height="142" rx="20"/>
+      <text class="node-title" x="468" y="270" text-anchor="middle">READY FOR AI</text>
+      <text class="node-copy" x="468" y="302" text-anchor="middle">Autorizzazione</text>
+      <text class="node-copy" x="468" y="326" text-anchor="middle">riservata agli</text>
+      <text class="node-copy" x="468" y="350" text-anchor="middle">AI Approver</text>
+    </g>
+
+    <g id="github-context" class="shadow">
+      <rect class="github" x="636" y="214" width="244" height="174" rx="20"/>
+      <text class="node-title" x="758" y="254" text-anchor="middle">CONTESTO GITHUB</text>
+      <text class="node-copy" x="758" y="286" text-anchor="middle">Nuova issue al primo giro</text>
+      <line x1="674" y1="303" x2="842" y2="303" stroke="#64748b"/>
+      <text class="node-copy" x="758" y="330" text-anchor="middle">Stessa issue e stessa PR</text>
+      <text class="node-copy" x="758" y="354" text-anchor="middle">nelle rilavorazioni</text>
+    </g>
+
+    <g id="copilot" class="shadow">
+      <rect class="agent" x="936" y="230" width="224" height="142" rx="20"/>
+      <text class="node-title" x="1048" y="270" text-anchor="middle">GITHUB COPILOT</text>
+      <text class="node-copy" x="1048" y="302" text-anchor="middle">Genera o corregge</text>
+      <text class="node-copy" x="1048" y="326" text-anchor="middle">codice e test</text>
+      <text class="node-copy" x="1048" y="350" text-anchor="middle">entro lo scope</text>
+    </g>
+
+    <g id="guardrails" class="shadow">
+      <rect class="guard" x="1216" y="214" width="244" height="174" rx="20"/>
+      <text class="node-title" x="1338" y="254" text-anchor="middle">GUARDRAIL + CI</text>
+      <text class="node-copy" x="1338" y="286" text-anchor="middle">Directory autorizzate</text>
+      <text class="node-copy" x="1338" y="310" text-anchor="middle">≤ 12 file · ≤ 800 righe</text>
+      <text class="node-copy" x="1338" y="334" text-anchor="middle">pytest · Ruff · CodeQL</text>
+      <text class="node-copy" x="1338" y="358" text-anchor="middle">status check obbligatori</text>
+    </g>
+
+    <g id="draft-pr" class="shadow">
+      <rect class="jira" x="1516" y="230" width="208" height="142" rx="20"/>
+      <text class="node-title" x="1620" y="270" text-anchor="middle">IN REVIEW</text>
+      <text class="node-copy" x="1620" y="302" text-anchor="middle">Draft PR creata</text>
+      <text class="node-copy" x="1620" y="326" text-anchor="middle">e collegata</text>
+      <text class="node-copy" x="1620" y="350" text-anchor="middle">alla card Jira</text>
+    </g>
+
+    <path class="arrow" d="M300 301 H346"/>
+    <text class="edge-label-small" x="323" y="286" text-anchor="middle">approva</text>
+    <path class="arrow" d="M580 301 H626"/>
+    <path class="arrow" d="M880 301 H926"/>
+    <path class="arrow" d="M1160 301 H1206"/>
+    <path class="arrow" d="M1460 301 H1506"/>
+  </g>
+
+  <g id="review-lane">
+    <rect class="lane" x="48" y="492" width="1704" height="484" rx="28"/>
+    <text class="phase" x="76" y="530">REVIEW UMANA ED ESITI</text>
+
+    <path class="arrow" d="M1620 372 V548"/>
+    <text class="edge-label" x="1636" y="470">PR pronta</text>
+
+    <g id="human-review" class="shadow">
+      <path class="human" d="M1620 548 L1720 638 L1620 728 L1520 638 Z"/>
+      <text class="node-title" x="1620" y="621" text-anchor="middle">DECISIONE</text>
+      <text class="node-title" x="1620" y="647" text-anchor="middle">UMANA</text>
+      <text class="node-copy" x="1620" y="676" text-anchor="middle">Review del diff</text>
+    </g>
+
+    <g id="done" class="shadow">
+      <rect class="success" x="1464" y="808" width="260" height="126" rx="20"/>
+      <text class="node-title" x="1594" y="847" text-anchor="middle">DONE</text>
+      <text class="node-copy" x="1594" y="879" text-anchor="middle">Merge in main</text>
+      <text class="node-copy" x="1594" y="903" text-anchor="middle">Issue chiusa · Jira aggiornato</text>
+    </g>
+
+    <path class="arrow-green" d="M1620 728 V798"/>
+    <text class="edge-label" x="1640" y="774">Approve + merge</text>
+
+    <g id="feedback" class="shadow">
+      <rect class="warning" x="692" y="704" width="310" height="148" rx="20"/>
+      <text class="node-title-dark" x="847" y="743" text-anchor="middle">RITORNO IN PROGRESS</text>
+      <text class="node-copy-dark" x="847" y="776" text-anchor="middle">Feedback sincronizzato su Jira</text>
+      <text class="node-copy-dark" x="847" y="800" text-anchor="middle">Il team corregge o decide</text>
+      <text class="node-copy-dark" x="847" y="824" text-anchor="middle">come proseguire</text>
+    </g>
+
+    <g id="return-causes">
+      <rect x="1068" y="548" width="332" height="116" rx="18" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+      <text class="node-title-dark" x="1234" y="578" text-anchor="middle">CAUSE DI RITORNO</text>
+      <text class="node-copy-dark" x="1094" y="605">• Request changes</text>
+      <text class="node-copy-dark" x="1094" y="628">• Errore agente / CI</text>
+      <text class="node-copy-dark" x="1094" y="651">• PR chiusa senza merge</text>
+    </g>
+
+    <path class="arrow-orange" d="M1520 638 H1410"/>
+    <path class="arrow-orange" d="M1516 344 C1480 430 1438 512 1380 548"/>
+    <path class="arrow-orange" d="M1338 388 V538"/>
+    <path class="arrow-orange" d="M1068 606 C1032 606 1012 666 994 714"/>
+
+    <path class="arrow-loop" d="M692 752 C548 720 468 620 468 382"/>
+    <text class="edge-label" x="520" y="674" text-anchor="middle">Card aggiornata</text>
+    <text class="edge-label" x="520" y="696" text-anchor="middle">+ nuova autorizzazione</text>
+
+    <g id="blocked" class="shadow">
+      <rect class="blocked" x="350" y="808" width="226" height="126" rx="20"/>
+      <text class="node-title-dark" x="463" y="847" text-anchor="middle">BLOCKED</text>
+      <text class="node-copy-dark" x="463" y="879" text-anchor="middle">Sospensione decisa</text>
+      <text class="node-copy-dark" x="463" y="903" text-anchor="middle">dal team</text>
+    </g>
+
+    <g id="rejected" class="shadow">
+      <rect class="rejected" x="76" y="808" width="226" height="126" rx="20"/>
+      <text class="node-title" x="189" y="847" text-anchor="middle">REJECTED</text>
+      <text class="node-copy" x="189" y="879" text-anchor="middle">Decisione definitiva</text>
+      <text class="node-copy" x="189" y="903" text-anchor="middle">Issue chiusa “not planned”</text>
+    </g>
+
+    <path class="arrow" d="M692 824 H586"/>
+    <text class="edge-label-small" x="638" y="807" text-anchor="middle">sospendi</text>
+    <path class="arrow-red" d="M350 871 H312"/>
+    <text class="edge-label-small" x="331" y="854" text-anchor="middle">rifiuta</text>
+  </g>
+
+  <text class="footer" x="900" y="1012" text-anchor="middle">Copilot propone e verifica · Il team autorizza, revisiona e decide · Jira e GitHub mantengono la traccia</text>
+</svg>
