@@ -137,6 +137,9 @@ I golden test proteggono le euristiche di analisi da regressioni: ogni comportam
 
 Per capire **come SCOPE è costruito internamente** (modello, pipeline, parser Java condiviso, come si verifica da solo), vedi [ARCHITECTURE.md](ARCHITECTURE.md).
 
+Per il processo Jira → GitHub Copilot → Pull Request, incluse review, rilavorazioni,
+fallimenti e rifiuto definitivo, vedi [AI_CODING_RUNBOOK.md](AI_CODING_RUNBOOK.md).
+
 ## Limiti
 
 - **Analisi statica**: non esegue i test (salvo il livello opzionale che ne ingerisce gli esiti). Un test disabilitato o mai lanciato può risultare comunque "coperto" a livello statico.
