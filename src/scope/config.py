@@ -14,6 +14,7 @@ REPO_ROOT    = repo dei test da analizzare (mai modificato: SCOPE è read-only).
 """
 
 import os
+import sys
 from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent          # src/scope
@@ -38,7 +39,26 @@ RUNTIME_INBOX_DIR = PROJECT_ROOT / "runtime" / "inbox"
 # Finestra (giorni, da oggi) entro cui un esito di run conta per lo stato corrente.
 # Analisi della salute del parco-test, non gate di rilascio → finestra generosa.
 # Override con env SCOPE_RUNTIME_WINDOW (utile per rianalizzare storici).
-RUNTIME_WINDOW_DAYS = int(os.environ.get("SCOPE_RUNTIME_WINDOW", "30"))
+# Un valore non numerico non deve impedire l'avvio: si torna al default con un avviso.
+_RUNTIME_WINDOW_DEFAULT = 30
+
+
+def _resolve_runtime_window_days(default: int = _RUNTIME_WINDOW_DEFAULT) -> int:
+    raw = os.environ.get("SCOPE_RUNTIME_WINDOW")
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        print(
+            f"[scope] Attenzione: SCOPE_RUNTIME_WINDOW={raw!r} non è un intero valido; "
+            f"uso il default {default}.",
+            file=sys.stderr,
+        )
+        return default
+
+
+RUNTIME_WINDOW_DAYS = _resolve_runtime_window_days()
 
 
 def _resolve_target_repo(project_root: Path = PROJECT_ROOT) -> Path:
