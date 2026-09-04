@@ -363,3 +363,86 @@ jobs:
             --header "X-Automation-Webhook-Token: $JIRA_WEBHOOK_SECRET" \
             --data "$PAYLOAD" \
             "$JIRA_WEBHOOK_URL"
+
+  notify-jira-failure:
+    needs: [generate, publish]
+    if: >-
+      always() &&
+      (needs.generate.result == 'failure' || needs.publish.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    permissions:
+      issues: read
+
+    steps:
+      - name: Notify Jira that implementation failed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          JIRA_WEBHOOK_URL: ${{ secrets.JIRA_AUTOMATION_WEBHOOK_URL }}
+          JIRA_WEBHOOK_SECRET: ${{ secrets.JIRA_AUTOMATION_WEBHOOK_SECRET }}
+          GENERATE_RESULT: ${{ needs.generate.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+        run: |
+          test -n "$JIRA_WEBHOOK_URL"
+          test -n "$JIRA_WEBHOOK_SECRET"
+
+          ISSUE_JSON="$(
+            gh issue view "$ISSUE_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json title,url
+          )"
+          ISSUE_TITLE="$(jq -r '.title' <<< "$ISSUE_JSON")"
+          ISSUE_URL="$(jq -r '.url' <<< "$ISSUE_JSON")"
+          JIRA_KEY="$(
+            printf '%s\n' "$ISSUE_TITLE" |
+              sed -nE 's/^\[([A-Z][A-Z0-9_]*-[0-9]+)\].*/\1/p'
+          )"
+
+          if [ -z "$JIRA_KEY" ]; then
+            echo "La Jira key non è presente nel titolo della issue."
+            exit 1
+          fi
+
+          RUN_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          MESSAGE="Copilot implementation failed: generate=$GENERATE_RESULT, publish=$PUBLISH_RESULT"
+          PAYLOAD="$(
+            jq -n \
+              --arg jiraKey "$JIRA_KEY" \
+              --arg event "ai_implementation_failed" \
+              --arg issueUrl "$ISSUE_URL" \
+              --arg runUrl "$RUN_URL" \
+              --arg message "$MESSAGE" \
+              '{
+                jiraKey: $jiraKey,
+                event: $event,
+                issueUrl: $issueUrl,
+                runUrl: $runUrl,
+                message: $message
+              }'
+          )"
+
+          curl \
+            --request POST \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "Content-Type: application/json" \
+            --header "X-Automation-Webhook-Token: $JIRA_WEBHOOK_SECRET" \
+            --data "$PAYLOAD" \
+            "$JIRA_WEBHOOK_URL"
+
+          {
+            echo "## Jira notificato del fallimento"
+            echo
+            echo "- Jira: $JIRA_KEY"
+            echo "- Issue: $ISSUE_URL"
+            echo "- Run: $RUN_URL"
+            echo "- Generate: $GENERATE_RESULT"
+            echo "- Publish: $PUBLISH_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"
