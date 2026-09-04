@@ -1324,6 +1324,21 @@ class TestPruneDashboards(unittest.TestCase):
         # con keep sufficiente il file valido resta, quello non valido è ignorato
         self.assertEqual(prune_reports.select_dashboards_to_prune(names, keep=3), [])
 
+    def test_unordered_input_keeps_most_recent(self):
+        # input non ordinato per timestamp: con keep=1 deve essere conservato
+        # solo il dashboard con timestamp più recente (20260614_120000)
+        names = [
+            "coverage-dashboard-20260601_090000.html",
+            "coverage-dashboard-20260614_120000.html",
+            "coverage-dashboard-20260605_080000.html",
+        ]
+        victims = prune_reports.select_dashboards_to_prune(names, keep=1)
+        self.assertNotIn("coverage-dashboard-20260614_120000.html", victims)
+        self.assertEqual(sorted(victims), [
+            "coverage-dashboard-20260601_090000.html",
+            "coverage-dashboard-20260605_080000.html",
+        ])
+
 
 # ===========================================================================
 # F7 — Invariante reachable ⊆ static (directly_invoked) anche con le FAMIGLIE
