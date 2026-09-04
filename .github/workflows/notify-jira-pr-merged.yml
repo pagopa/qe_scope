@@ -1,4 +1,4 @@
-name: Notify Jira when Copilot PR is merged
+name: Notify Jira when Copilot PR is closed
 
 on:
   pull_request:
@@ -7,7 +7,6 @@ on:
 jobs:
   notify-jira:
     if: >-
-      github.event.pull_request.merged == true &&
       github.event.pull_request.base.ref == 'main' &&
       startsWith(github.event.pull_request.head.ref, 'copilot/issue-')
     runs-on: ubuntu-latest
@@ -24,7 +23,9 @@ jobs:
           JIRA_WEBHOOK_SECRET: ${{ secrets.JIRA_AUTOMATION_WEBHOOK_SECRET }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
           MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+          CLOSED_BY: ${{ github.event.sender.login }}
           MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           test -n "$JIRA_WEBHOOK_URL"
@@ -40,18 +41,26 @@ jobs:
             exit 1
           fi
 
+          if [ "$PR_MERGED" = "true" ]; then
+            EVENT="pr_merged"
+          else
+            EVENT="pr_closed_without_merge"
+          fi
+
           PAYLOAD="$(
             jq -n \
               --arg jiraKey "$JIRA_KEY" \
-              --arg event "pr_merged" \
+              --arg event "$EVENT" \
               --arg prUrl "$PR_URL" \
               --arg mergedBy "$MERGED_BY" \
+              --arg closedBy "$CLOSED_BY" \
               --arg mergeCommitSha "$MERGE_COMMIT_SHA" \
               '{
                 jiraKey: $jiraKey,
                 event: $event,
                 prUrl: $prUrl,
                 mergedBy: $mergedBy,
+                closedBy: $closedBy,
                 mergeCommitSha: $mergeCommitSha
               }'
           )"
@@ -75,6 +84,6 @@ jobs:
             echo
             echo "- Jira: $JIRA_KEY"
             echo "- PR: $PR_URL"
-            echo "- Merge eseguito da: $MERGED_BY"
-            echo "- Evento: pr_merged"
+            echo "- Operazione eseguita da: $CLOSED_BY"
+            echo "- Evento: $EVENT"
           } >> "$GITHUB_STEP_SUMMARY"
