@@ -1308,6 +1308,20 @@ class TestPruneDashboards(unittest.TestCase):
         self.assertEqual(prune_reports.select_dashboards_to_prune(names, keep=0),
                          ["coverage-dashboard-20260614_120000.html"])
 
+    def test_unordered_input_keeps_most_recent(self):
+        # input non ordinato: il timestamp più recente deve essere mantenuto
+        names = [
+            "coverage-dashboard-20260610_120000.html",
+            "coverage-dashboard-20260614_120000.html",
+            "coverage-dashboard-20260612_120000.html",
+        ]
+        victims = prune_reports.select_dashboards_to_prune(names, keep=1)
+        self.assertNotIn("coverage-dashboard-20260614_120000.html", victims)
+        self.assertEqual(victims, [
+            "coverage-dashboard-20260610_120000.html",
+            "coverage-dashboard-20260612_120000.html",
+        ])
+
     def test_negative_keep_raises_value_error(self):
         names = ["coverage-dashboard-20260614_120000.html"]
         with self.assertRaises(ValueError):
