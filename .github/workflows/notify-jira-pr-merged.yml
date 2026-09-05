@@ -7,7 +7,12 @@ on:
 jobs:
   notify-jira:
     if: >-
-      github.event.pull_request.base.ref == 'main' &&
+      (github.event.pull_request.base.ref == 'main' ||
+       github.event.pull_request.base.ref == 'develop' ||
+       startsWith(github.event.pull_request.base.ref, 'feature/') ||
+       startsWith(github.event.pull_request.base.ref, 'feat/') ||
+       startsWith(github.event.pull_request.base.ref, 'release/') ||
+       startsWith(github.event.pull_request.base.ref, 'hotfix/')) &&
       startsWith(github.event.pull_request.head.ref, 'copilot/issue-')
     runs-on: ubuntu-latest
     timeout-minutes: 2

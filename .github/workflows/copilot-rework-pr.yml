@@ -95,6 +95,39 @@ jobs:
             (.labels | any(.name | ascii_downcase == "ready-for-ai"))
           ' "$RUNNER_TEMP/issue.json" > /dev/null
 
+          BASE_BRANCH="$(
+            jq -r '.body // ""' "$RUNNER_TEMP/issue.json" \
+              | sed -n 's/^- \*\*Base branch:\*\*[[:space:]]*//p' \
+              | head -n 1 \
+              | tr -d '\r'
+          )"
+
+          # Compatibilita con le Issue create prima dell'introduzione del campo.
+          BASE_BRANCH="${BASE_BRANCH:-main}"
+
+          case "$BASE_BRANCH" in
+            main|develop)
+              ;;
+            feature/*|feat/*|release/*|hotfix/*)
+              if ! printf '%s' "$BASE_BRANCH" | grep -Eq '^(feature|feat|release|hotfix)/[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
+                echo "Formato Base branch non autorizzato: $BASE_BRANCH" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Base branch non autorizzato: $BASE_BRANCH" >&2
+              echo "Valori consentiti: main, develop, feature/*, feat/*, release/*, hotfix/*" >&2
+              exit 1
+              ;;
+          esac
+
+          if ! git ls-remote --exit-code --heads \
+            "https://github.com/$GITHUB_REPOSITORY.git" \
+            "refs/heads/$BASE_BRANCH" > /dev/null; then
+            echo "Base branch inesistente su GitHub: $BASE_BRANCH" >&2
+            exit 1
+          fi
+
           gh pr view "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
             --json number,title,body,url,state,isDraft,isCrossRepository,baseRefName,headRefName,headRefOid \
@@ -102,10 +135,11 @@ jobs:
 
           jq -e \
             --arg jira_key "$JIRA_KEY" \
-            --arg pr_url "$PR_URL" '
+            --arg pr_url "$PR_URL" \
+            --arg base_branch "$BASE_BRANCH" '
               .state == "OPEN" and
               .isCrossRepository == false and
-              .baseRefName == "main" and
+              .baseRefName == $base_branch and
               (.headRefName | startswith("copilot/issue-")) and
               .url == $pr_url and
               (.title | startswith("[" + $jira_key + "]"))
@@ -119,6 +153,7 @@ jobs:
             echo "head_sha=$HEAD_SHA"
             echo "issue_number=$ISSUE_NUMBER"
             echo "pr_number=$PR_NUMBER"
+            echo "base_branch=$BASE_BRANCH"
           } >> "$GITHUB_OUTPUT"
 
       - name: Checkout pull request branch

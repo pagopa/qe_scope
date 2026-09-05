@@ -29,27 +29,14 @@ jobs:
       issues: read
       copilot-requests: write
 
+    outputs:
+      base_branch: ${{ steps.base-branch.outputs.base_branch }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install tools
-        run: |
-          npm install -g @github/copilot
-          python -m pip install -e ".[dev]"
-          copilot version > "$RUNNER_TEMP/copilot-cli-version.txt"
 
       - name: Load authorized issue
         env:
@@ -109,6 +96,67 @@ jobs:
 
           echo "Modello Copilot richiesto: $REQUESTED_MODEL"
           printf 'COPILOT_REQUESTED_MODEL=%s\n' "$REQUESTED_MODEL" >> "$GITHUB_ENV"
+
+      - name: Resolve requested base branch
+        id: base-branch
+        run: |
+          BASE_BRANCH="$(
+            jq -r '.body // ""' "$RUNNER_TEMP/issue.json" \
+              | sed -n 's/^- \*\*Base branch:\*\*[[:space:]]*//p' \
+              | head -n 1 \
+              | tr -d '\r'
+          )"
+
+          # Compatibilita con le Issue create prima dell'introduzione del campo.
+          BASE_BRANCH="${BASE_BRANCH:-main}"
+
+          case "$BASE_BRANCH" in
+            main|develop)
+              ;;
+            feature/*|feat/*|release/*|hotfix/*)
+              if ! printf '%s' "$BASE_BRANCH" | grep -Eq '^(feature|feat|release|hotfix)/[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
+                echo "Formato Base branch non autorizzato: $BASE_BRANCH" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Base branch non autorizzato: $BASE_BRANCH" >&2
+              echo "Valori consentiti: main, develop, feature/*, feat/*, release/*, hotfix/*" >&2
+              exit 1
+              ;;
+          esac
+
+          if ! git ls-remote --exit-code --heads \
+            "https://github.com/$GITHUB_REPOSITORY.git" \
+            "refs/heads/$BASE_BRANCH" > /dev/null; then
+            echo "Base branch inesistente su GitHub: $BASE_BRANCH" >&2
+            exit 1
+          fi
+
+          echo "Base branch autorizzato: $BASE_BRANCH"
+          printf 'base_branch=%s\n' "$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout selected base branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.base-branch.outputs.base_branch }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          npm install -g @github/copilot
+          python -m pip install -e ".[dev]"
+          copilot version > "$RUNNER_TEMP/copilot-cli-version.txt"
 
       # Copilot può scrivere soltanto nelle directory rese modificabili qui.
       # Il runner è effimero e non contiene credenziali con accesso in scrittura
@@ -247,10 +295,10 @@ jobs:
       statuses: write
 
     steps:
-      - name: Checkout main
+      - name: Checkout selected base branch
         uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ needs.generate.outputs.base_branch }}
 
       - name: Download validated patch
         uses: actions/download-artifact@v4
@@ -270,6 +318,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          BASE_BRANCH: ${{ needs.generate.outputs.base_branch }}
         run: |
           BRANCH_NAME="copilot/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
 
@@ -308,7 +357,7 @@ jobs:
           PR_URL="$(
             gh pr create \
               --repo "$GITHUB_REPOSITORY" \
-              --base main \
+              --base "$BASE_BRANCH" \
               --head "$BRANCH_NAME" \
               --draft \
               --title "$ISSUE_TITLE" \
