@@ -232,6 +232,13 @@ jobs:
           name: copilot-change
           path: ${{ runner.temp }}/copilot-change
 
+      - name: Download Copilot technical report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: copilot-technical-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/copilot-technical-report
+
       - name: Create branch, commit and Draft PR
         id: publish-pr
         env:
@@ -377,12 +384,49 @@ jobs:
           test -n "$JIRA_WEBHOOK_URL"
           test -n "$JIRA_WEBHOOK_SECRET"
 
+          REPORT_PATH="$RUNNER_TEMP/copilot-technical-report/copilot-technical-report.json"
+          if [ -f "$REPORT_PATH" ] && jq -e . "$REPORT_PATH" > /dev/null; then
+            REPORT_JSON="$(cat "$REPORT_PATH")"
+          else
+            REPORT_JSON='{}'
+          fi
+
+          RUN_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
           PAYLOAD="$(
             jq -n \
               --arg jiraKey "$JIRA_KEY" \
               --arg event "pr_created" \
               --arg prUrl "$PR_URL" \
-              '{jiraKey: $jiraKey, event: $event, prUrl: $prUrl}'
+              --arg runUrl "$RUN_URL" \
+              --argjson report "$REPORT_JSON" \
+              '
+                def display($value):
+                  if $value == null then "non disponibile" else ($value | tostring) end;
+                def model:
+                  if (($report.copilot.resolved_models // []) | length) > 0 then
+                    ($report.copilot.resolved_models | join(", "))
+                  elif (($report.copilot.requested_models // []) | length) > 0 then
+                    ($report.copilot.requested_models | join(", "))
+                  else
+                    "non disponibile"
+                  end;
+                {
+                  jiraKey: $jiraKey,
+                  event: $event,
+                  prUrl: $prUrl,
+                  aiExecution: {
+                    model: model,
+                    inputTokens: display($report.copilot.input_tokens),
+                    outputTokens: display($report.copilot.output_tokens),
+                    cachedInputTokens: display($report.copilot.cache_read_input_tokens),
+                    turnCount: display($report.copilot.turn_count),
+                    aiUnits: display($report.copilot.ai_units),
+                    telemetryStatus: ($report.copilot.telemetry_status // "unavailable"),
+                    runUrl: $runUrl
+                  }
+                }
+              '
           )"
 
           curl \
