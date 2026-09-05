@@ -97,12 +97,18 @@ jobs:
           jq '{updated_at, executions: (.executions | length)}' \
             metrics-data/ai-metrics/executions.json
 
-      - name: Persist dataset
+      - name: Generate self-contained dashboard
+        run: |
+          python source/.github/scripts/generate_ai_metrics_dashboard.py \
+            --input metrics-data/ai-metrics/executions.json \
+            --output metrics-data/ai-metrics/index.html
+
+      - name: Persist dataset and dashboard
         working-directory: metrics-data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ai-metrics/executions.json
+          git add ai-metrics/executions.json ai-metrics/index.html
 
           if git diff --cached --quiet; then
             echo "Dataset già aggiornato: nessuna modifica da pubblicare."
@@ -112,10 +118,10 @@ jobs:
           git commit -m "data: update AI execution metrics"
           git push origin HEAD:ai-metrics-data
 
-      - name: Upload current dataset
+      - name: Upload current report
         uses: actions/upload-artifact@v4
         with:
           name: ai-technical-metrics-${{ github.run_id }}
-          path: metrics-data/ai-metrics/executions.json
+          path: metrics-data/ai-metrics/
           if-no-files-found: error
           retention-days: 30
