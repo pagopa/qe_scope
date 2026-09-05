@@ -233,6 +233,7 @@ def main() -> None:
         "issue": _issue(args.issue),
         "copilot": {
             "cli_version": _read_text(args.cli_version),
+            "configured_model": os.environ.get("COPILOT_REQUESTED_MODEL"),
             **extract_telemetry(args.telemetry),
         },
     }
