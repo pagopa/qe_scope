@@ -915,6 +915,44 @@ class TestSharedConfig(unittest.TestCase):
             else:
                 os.environ["SCOPE_RUNTIME_WINDOW"] = prev
 
+    def test_runtime_window_zero_warns_and_falls_back(self):
+        """QA-17085: valore 0 -> nessuna eccezione, default 30, avviso su stderr."""
+        import contextlib
+        import io
+        import os
+        prev = os.environ.get("SCOPE_RUNTIME_WINDOW")
+        os.environ["SCOPE_RUNTIME_WINDOW"] = "0"
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                result = scope_config._resolve_runtime_window_days()
+            self.assertEqual(result, 30)
+            self.assertIn("SCOPE_RUNTIME_WINDOW", err.getvalue())
+        finally:
+            if prev is None:
+                os.environ.pop("SCOPE_RUNTIME_WINDOW", None)
+            else:
+                os.environ["SCOPE_RUNTIME_WINDOW"] = prev
+
+    def test_runtime_window_negative_warns_and_falls_back(self):
+        """QA-17085: valore negativo -> nessuna eccezione, default 30, avviso su stderr."""
+        import contextlib
+        import io
+        import os
+        prev = os.environ.get("SCOPE_RUNTIME_WINDOW")
+        os.environ["SCOPE_RUNTIME_WINDOW"] = "-5"
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                result = scope_config._resolve_runtime_window_days()
+            self.assertEqual(result, 30)
+            self.assertIn("SCOPE_RUNTIME_WINDOW", err.getvalue())
+        finally:
+            if prev is None:
+                os.environ.pop("SCOPE_RUNTIME_WINDOW", None)
+            else:
+                os.environ["SCOPE_RUNTIME_WINDOW"] = prev
+
 
 # ===========================================================================
 # F5 — Smoke test della generazione HTML (report-html.py)
