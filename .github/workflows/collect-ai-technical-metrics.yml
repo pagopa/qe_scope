@@ -1,0 +1,121 @@
+name: Collect AI technical metrics
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: collect-ai-technical-metrics
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: source
+
+      - name: Ensure metrics data branch exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SOURCE_SHA="$(git -C source rev-parse HEAD)"
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/ai-metrics-data" >/dev/null 2>&1; then
+            gh api \
+              --method POST \
+              "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref='refs/heads/ai-metrics-data' \
+              -f sha="$SOURCE_SHA"
+          fi
+
+      - name: Checkout metrics data
+        uses: actions/checkout@v6
+        with:
+          ref: ai-metrics-data
+          path: metrics-data
+
+      - name: Download available technical reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/copilot-reports"
+          gh api \
+            --paginate \
+            "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false and (.name | startswith("copilot-technical-report-"))) | [.id, .name] | @tsv' \
+            > "$RUNNER_TEMP/copilot-artifacts.tsv"
+
+          while IFS=$'\t' read -r artifact_id artifact_name; do
+            [ -n "$artifact_id" ] || continue
+            destination="$RUNNER_TEMP/copilot-reports/$artifact_name"
+            mkdir -p "$destination"
+            gh api \
+              "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              > "$RUNNER_TEMP/copilot-artifact-$artifact_id.zip"
+            unzip -q \
+              "$RUNNER_TEMP/copilot-artifact-$artifact_id.zip" \
+              -d "$destination"
+          done < "$RUNNER_TEMP/copilot-artifacts.tsv"
+
+      - name: Read workflow runs and pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --paginate \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/copilot-implement-issue.yml/runs?per_page=100" \
+            --jq '.workflow_runs[]' \
+            | jq -s '.' \
+            > "$RUNNER_TEMP/copilot-runs.json"
+
+          gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state all \
+            --limit 1000 \
+            --json number,url,state,isDraft,headRefName,createdAt,updatedAt,closedAt,mergedAt,reviewDecision,additions,deletions,changedFiles \
+            > "$RUNNER_TEMP/copilot-prs.json"
+
+      - name: Build durable dataset
+        run: |
+          python source/.github/scripts/collect_ai_metrics.py \
+            --reports-dir "$RUNNER_TEMP/copilot-reports" \
+            --runs "$RUNNER_TEMP/copilot-runs.json" \
+            --prs "$RUNNER_TEMP/copilot-prs.json" \
+            --existing metrics-data/ai-metrics/executions.json \
+            --output metrics-data/ai-metrics/executions.json
+
+          jq '{updated_at, executions: (.executions | length)}' \
+            metrics-data/ai-metrics/executions.json
+
+      - name: Persist dataset
+        working-directory: metrics-data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai-metrics/executions.json
+
+          if git diff --cached --quiet; then
+            echo "Dataset già aggiornato: nessuna modifica da pubblicare."
+            exit 0
+          fi
+
+          git commit -m "data: update AI execution metrics"
+          git push origin HEAD:ai-metrics-data
+
+      - name: Upload current dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-technical-metrics-${{ github.run_id }}
+          path: metrics-data/ai-metrics/executions.json
+          if-no-files-found: error
+          retention-days: 30

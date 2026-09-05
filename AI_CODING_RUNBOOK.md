@@ -207,6 +207,23 @@ Non usare token, turni o righe modificate come misura isolata della produttivit�
 sviluppatore o della qualità del modello. L'esito rilevante resta una modifica corretta,
 comprensibile, verificata e accettata attraverso review umana.
 
+### Dataset tecnico aggregato
+
+Il workflow GitHub Actions `Collect AI technical metrics` consolida i report ancora disponibili
+con lo stato dei relativi run e delle Pull Request. La prima versione è avviata manualmente da
+`Actions → Collect AI technical metrics → Run workflow` e non interroga Jira.
+
+Il risultato persistente è `ai-metrics/executions.json` nel branch tecnico
+`ai-metrics-data`. Ogni record è identificato da `<run-id>:<run-attempt>`: rilanciare il collector
+non duplica l'esecuzione e aggiorna gli attributi mutabili della PR, per esempio il passaggio da
+aperta a merged. Il dataset conserva i dati già acquisiti anche dopo la scadenza degli artifact
+GitHub Actions ed è la fonte destinata alla futura dashboard HTML.
+
+Il workflow pubblica inoltre una copia del dataset come artifact
+`ai-technical-metrics-<collector-run-id>`, conservata per 30 giorni. Il branch dati è una fonte
+tecnica generata automaticamente: non va modificato a mano e non entra nel flusso di merge verso
+`main`.
+
 ## Review e merge
 
 Il reviewer:
