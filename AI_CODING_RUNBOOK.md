@@ -239,6 +239,20 @@ Nei repository pubblici GitHub può disabilitare i workflow pianificati dopo 60 
 attività. Il controllo periodico del pilota deve quindi includere la verifica che il workflow
 `Collect AI technical metrics` sia ancora abilitato.
 
+### Pubblicazione per team e stakeholder
+
+Il workflow `Publish AI metrics dashboard` pubblica `ai-metrics/index.html` tramite GitHub Pages
+al termine positivo del collector. Per la prima attivazione, in `Settings → Pages` selezionare
+`Source: GitHub Actions` e verificare l'ambiente di deployment `github-pages`. Il workflow può
+essere avviato manualmente per il primo collaudo; in seguito ogni aggiornamento del dataset
+attiverà automaticamente una nuova pubblicazione.
+
+La URL viene esposta nell'ambiente `github-pages` e nel riepilogo della run. Se il repository è
+pubblico, la pagina e i dati inclusi nel sito sono pubblici: prima di condividere il link,
+verificare che issue title, Jira key, link GitHub e metriche di consumo siano appropriati per gli
+stakeholder destinatari. Non inserire nel dataset segreti, prompt, risposte del modello o dati
+personali non necessari.
+
 Gli indicatori mostrati includono successo del workflow, produzione e merge delle PR, mediane
 dei tempi osservabili, token, modello e dimensione della modifica. Sono metriche del processo
 tecnico: non dimostrano da sole qualità del codice, produttività individuale, difetti evitati o
