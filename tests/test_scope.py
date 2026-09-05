@@ -20,6 +20,7 @@ from pathlib import Path
 
 # Il package `scope` è importabile grazie a conftest.py (src/ su sys.path) o a
 # `pip install -e .`. Niente più importlib-by-path: nomi di modulo veri.
+import scope
 from scope import config as scope_config
 from scope import inventory as coverage_tool
 from scope import java_analysis  # noqa: F401  (alcuni test lo usano via reflection)
@@ -32,6 +33,13 @@ TESTS_DIR = Path(__file__).resolve().parent
 TOOL_DIR = TESTS_DIR.parent          # project root (per fixtures/asset path)
 FIXTURES = TESTS_DIR / "fixtures"
 COV_FIX = FIXTURES / "coverage"
+
+
+class TestPackageVersion(unittest.TestCase):
+    """Versione pubblica del package."""
+
+    def test_scope_version_is_exposed(self):
+        self.assertEqual(scope.__version__, "1.0.0")
 
 
 def _src_report():
