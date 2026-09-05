@@ -224,6 +224,16 @@ Il workflow pubblica inoltre una copia del dataset come artifact
 tecnica generata automaticamente: non va modificato a mano e non entra nel flusso di merge verso
 `main`.
 
+Lo stesso workflow genera `ai-metrics/index.html`, una dashboard autocontenuta che può essere
+scaricata insieme al dataset dall'artifact e aperta localmente nel browser. La pagina presenta
+una sintesi per stakeholder e il dettaglio tecnico per singola esecuzione, con filtri e link alle
+evidenze GitHub. In questa fase non è ancora pubblicata tramite GitHub Pages.
+
+Gli indicatori mostrati includono successo del workflow, produzione e merge delle PR, mediane
+dei tempi osservabili, token, modello e dimensione della modifica. Sono metriche del processo
+tecnico: non dimostrano da sole qualità del codice, produttività individuale, difetti evitati o
+tempo umano effettivamente impiegato.
+
 ## Review e merge
 
 Il reviewer:
