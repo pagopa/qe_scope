@@ -48,7 +48,7 @@ def _resolve_runtime_window_days(default: int = _RUNTIME_WINDOW_DEFAULT) -> int:
     if raw is None:
         return default
     try:
-        return int(raw)
+        value = int(raw)
     except ValueError:
         print(
             f"[scope] Attenzione: SCOPE_RUNTIME_WINDOW={raw!r} non è un intero valido; "
@@ -56,6 +56,14 @@ def _resolve_runtime_window_days(default: int = _RUNTIME_WINDOW_DEFAULT) -> int:
             file=sys.stderr,
         )
         return default
+    if value <= 0:
+        print(
+            f"[scope] Attenzione: SCOPE_RUNTIME_WINDOW={raw!r} non è positivo; "
+            f"uso il default {default}.",
+            file=sys.stderr,
+        )
+        return default
+    return value
 
 
 RUNTIME_WINDOW_DAYS = _resolve_runtime_window_days()
