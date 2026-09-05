@@ -40,8 +40,12 @@ class TestPackageVersion(unittest.TestCase):
 
     def test_scope_version_is_exposed(self):
         self.assertIsInstance(scope.__version__, str)
-        self.assertTrue(scope.__version__)
-        self.assertEqual(scope.__version__, "1.0.0")
+        self.assertTrue(scope.__version__, "scope.__version__ non deve essere una stringa vuota")
+        self.assertEqual(
+            scope.__version__,
+            "1.0.0",
+            f"atteso scope.__version__ == '1.0.0', ricevuto {scope.__version__!r}",
+        )
 
 
 def _src_report():
