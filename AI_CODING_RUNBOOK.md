@@ -186,10 +186,13 @@ vanno aggiunti ai `145053`. Il report ha misurato circa 31 secondi per l'invocaz
 mentre il workflow completo, inclusi controlli e pubblicazione, è durato circa 1 minuto e 50
 secondi.
 
-La versione Copilot CLI osservata era `1.0.83`. L'output reale ha esposto le AI units tramite
-`github.copilot.nano_aiu`, non ancora convertito dal parser del pilota; per questo Jira le ha
-mostrate come non disponibili. Questa differenza deve essere risolta nel parser prima di usare
-le AI units nei report aggregati.
+La versione Copilot CLI osservata era `1.0.83`. In quella prima esecuzione l'output reale aveva
+esposto le AI units tramite `github.copilot.nano_aiu`, che il parser iniziale non convertiva;
+per questo il commento storico Jira le mostra come non disponibili. Il parser successivo
+riconosce sia `github.copilot.aiu` sia `github.copilot.nano_aiu`, convertendo quest'ultimo da
+nano-unità, e identifica lo span principale tramite l'assenza di `parentSpanId`. Riconosce inoltre
+`gen_ai.usage.cache_write.input_tokens` come volume scritto nella cache. I report successivi alla
+correzione possono quindi valorizzare questi dati senza modificare il risultato storico.
 
 ### Uso corretto nel pilota
 

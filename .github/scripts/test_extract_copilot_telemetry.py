@@ -66,6 +66,48 @@ class ExtractCopilotTelemetryTests(unittest.TestCase):
         self.assertIsNone(result["input_tokens"])
         self.assertEqual(result["resolved_models"], [])
 
+    def test_accepts_actual_cli_root_and_nano_aiu_schema(self):
+        root = {
+            "type": "span",
+            "spanId": "root",
+            "parentSpanId": None,
+            "name": "invoke_agent",
+            "attributes": {
+                "gen_ai.operation.name": "invoke_agent",
+                "gen_ai.request.model": "claude-sonnet-5",
+                "gen_ai.usage.input_tokens": 145053,
+                "gen_ai.usage.output_tokens": 2749,
+                "gen_ai.usage.cache_read.input_tokens": 128714,
+                "gen_ai.usage.cache_write.input_tokens": 16317,
+                "github.copilot.nano_aiu": 9406930000.0,
+                "github.copilot.turn_count": 11,
+            },
+        }
+        child = {
+            "type": "span",
+            "spanId": "chat",
+            "parentSpanId": "root",
+            "name": "chat claude-sonnet-5",
+            "attributes": {
+                "gen_ai.operation.name": "chat",
+                "gen_ai.response.model": "claude-sonnet-5",
+                "gen_ai.usage.input_tokens": 9192,
+                "gen_ai.usage.output_tokens": 187,
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "telemetry.jsonl"
+            path.write_text(json.dumps(root) + "\n" + json.dumps(child) + "\n")
+            result = MODULE.extract_telemetry(path)
+
+        self.assertEqual(result["telemetry_status"], "complete")
+        self.assertEqual(result["input_tokens"], 145053)
+        self.assertEqual(result["output_tokens"], 2749)
+        self.assertEqual(result["cache_read_input_tokens"], 128714)
+        self.assertEqual(result["cache_creation_input_tokens"], 16317)
+        self.assertAlmostEqual(result["ai_units"], 9.40693)
+        self.assertEqual(result["turn_count"], 11)
+
 
 if __name__ == "__main__":
     unittest.main()
