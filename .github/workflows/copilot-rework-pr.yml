@@ -224,6 +224,31 @@ jobs:
             ' "$RUNNER_TEMP/conversation-comments.json"
           } > "$RUNNER_TEMP/copilot-rework-prompt.txt"
 
+      - name: Resolve requested Copilot model
+        run: |
+          REQUESTED_MODEL="$(
+            jq -r '.body // ""' "$RUNNER_TEMP/issue.json" \
+              | sed -n 's/^- \*\*Modello AI richiesto:\*\*[[:space:]]*//p' \
+              | head -n 1 \
+              | tr -d '\r'
+          )"
+
+          case "$REQUESTED_MODEL" in
+            ""|auto)
+              REQUESTED_MODEL="auto"
+              ;;
+            claude-sonnet-5)
+              ;;
+            *)
+              echo "Modello Copilot non autorizzato: $REQUESTED_MODEL" >&2
+              echo "Valori consentiti: auto, claude-sonnet-5" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "Modello Copilot richiesto: $REQUESTED_MODEL"
+          printf 'COPILOT_REQUESTED_MODEL=%s\n' "$REQUESTED_MODEL" >> "$GITHUB_ENV"
+
       - name: Restrict workspace writes
         run: |
           chmod -R a-w .
@@ -234,6 +259,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           copilot \
+            --model "$COPILOT_REQUESTED_MODEL" \
             --silent \
             --no-ask-user \
             --available-tools='view,grep,glob,edit,create,apply_patch' \
