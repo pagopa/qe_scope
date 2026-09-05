@@ -14,6 +14,18 @@ Il perimetro (denominatore) viene dalle spec OpenAPI, non da una lista compilata
 
 > SCOPE lavora **dall'esterno, in sola lettura**: analizza il repository dei test senza mai modificarlo.
 
+## AI Coding Pilot
+
+[Apri la dashboard pubblica del pilota AI](https://pagopa.github.io/qe_scope/)
+
+Il repository include anche il flusso Jira → GitHub Copilot → Pull Request con review umana,
+raccolta delle metriche tecniche e pubblicazione automatica della dashboard. La guida operativa è
+disponibile in [AI_CODING_RUNBOOK.md](AI_CODING_RUNBOOK.md).
+
+Il repository, i branch, i commit e la dashboard sono pubblici. Non committare secret, prompt,
+risposte del modello, dati personali o informazioni riservate; rimuovere un dato in un commit
+successivo non lo elimina dalla cronologia Git.
+
 ## Come funziona (in breve)
 
 L'analisi è statica e si articola su due livelli, che condividono lo stesso parser Java:
@@ -70,7 +82,8 @@ scripts/refresh-all.sh interop      # una sola suite
 scripts/refresh-all.sh --no-open    # senza aprire il browser
 ```
 
-Esegue nell'ordine gli auto-test, l'inventario, l'analisi tag e la generazione della dashboard.
+Esegue nell'ordine gli auto-test, l'inventario, l'analisi tag, l'ingest degli esiti runtime e la
+generazione della dashboard.
 
 ### Passo per passo
 
@@ -100,6 +113,14 @@ scope-report --open                           # la dashboard mostra ✓ eseguita
 - **Dashboard HTML** (`reports/html/`): un singolo file autoconsistente (nessuna dipendenza esterna) con sintesi esecutiva, drill-down per endpoint/microservizio/tag/runner, copertura pesata per criticità, trend storico e una FAQ integrata. Si apre con doppio click e si può archiviare o inviare.
 - **CSV / JSON** per suite (`reports/<timestamp>_<suite>/`): il dettaglio riga per riga, riutilizzabile da altri strumenti.
 
+### Report tecnico del pilota AI
+
+Il workflow GitHub Actions `Collect AI technical metrics` raccoglie i report strutturati delle
+esecuzioni Copilot e genera la dashboard del pilota. Il JSON storico e l'HTML sono persistiti nel
+branch tecnico `ai-metrics-data` e pubblicati su [GitHub Pages](https://pagopa.github.io/qe_scope/).
+Il collector è schedulato ogni giorno alle 23:30 nel fuso `Europe/Rome`; il deploy Pages parte
+al termine positivo della raccolta.
+
 ### Copertura pesata per criticità
 
 Non tutti gli endpoint valgono uguale. In `data/criticality.yaml` si assegnano classi di criticità (`core` / `standard` / `marginal`) per servizio, spec, path o singolo endpoint; la dashboard mostra allora una **copertura reale pesata** accanto a quella semplice. Le classi si possono modificare direttamente nella dashboard ed esportare di nuovo nel file.
@@ -121,7 +142,8 @@ scope/
 ├── data/                   configurazione versionata (criticality.yaml, spec-lock.json)
 ├── scripts/                refresh-all.sh, ci-check.sh
 ├── tests/                  golden test (pytest) + fixture (mini-repo sintetico)
-├── .github/workflows/      CI: lint (ruff) + test (pytest)
+├── .github/scripts/        parser telemetry, collector e renderer report AI
+├── .github/workflows/      CI, Copilot, metriche AI e pubblicazione Pages
 └── reports/                output delle esecuzioni (non versionato)
 ```
 
