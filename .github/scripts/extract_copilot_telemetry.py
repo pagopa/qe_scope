@@ -94,6 +94,16 @@ def _sum(attributes: list[dict[str, Any]], key: str) -> int | float | None:
     return sum(numbers) if numbers else None
 
 
+def _sum_first(
+    attributes: list[dict[str, Any]], *keys: str
+) -> int | float | None:
+    for key in keys:
+        value = _sum(attributes, key)
+        if value is not None:
+            return value
+    return None
+
+
 def _distinct(values: list[Any]) -> list[str]:
     result = []
     for value in values:
@@ -107,32 +117,42 @@ def _distinct(values: list[Any]) -> list[str]:
 
 def extract_telemetry(path: Path) -> dict[str, Any]:
     records = _load_jsonl(path)
-    attribute_sets = []
+    spans = []
     for record in records:
         for candidate in _walk(record):
             attrs = _attributes(candidate.get("attributes"))
             if "gen_ai.operation.name" in attrs:
-                attribute_sets.append(attrs)
+                spans.append((candidate, attrs))
 
     invocations = [
-        attrs
-        for attrs in attribute_sets
+        (span, attrs)
+        for span, attrs in spans
         if attrs.get("gen_ai.operation.name") == "invoke_agent"
     ]
-    top_level = [attrs for attrs in invocations if attrs.get("server.address")]
+    top_level = [
+        attrs
+        for span, attrs in invocations
+        if span.get("parentSpanId", span.get("parent_span_id")) in (None, "")
+    ]
+    if not top_level:
+        top_level = [attrs for _, attrs in invocations if attrs.get("server.address")]
     status = "complete"
     selected = top_level
     if not selected and invocations:
-        selected = invocations
+        selected = [attrs for _, attrs in invocations]
         status = "fallback_all_invocations"
     if not selected:
         status = "unavailable" if not records else "no_agent_spans"
 
     chat_spans = [
         attrs
-        for attrs in attribute_sets
+        for _, attrs in spans
         if attrs.get("gen_ai.operation.name") == "chat"
     ]
+    nano_aiu = _sum(selected, "github.copilot.nano_aiu")
+    ai_units = _sum(selected, "github.copilot.aiu")
+    if ai_units is None and nano_aiu is not None:
+        ai_units = nano_aiu / 1_000_000_000
     return {
         "telemetry_status": status,
         "requested_models": _distinct(
@@ -146,12 +166,14 @@ def extract_telemetry(path: Path) -> dict[str, Any]:
         "cache_read_input_tokens": _sum(
             selected, "gen_ai.usage.cache_read.input_tokens"
         ),
-        "cache_creation_input_tokens": _sum(
-            selected, "gen_ai.usage.cache_creation.input_tokens"
+        "cache_creation_input_tokens": _sum_first(
+            selected,
+            "gen_ai.usage.cache_creation.input_tokens",
+            "gen_ai.usage.cache_write.input_tokens",
         ),
         "turn_count": _sum(selected, "github.copilot.turn_count"),
         "cost": _sum(selected, "github.copilot.cost"),
-        "ai_units": _sum(selected, "github.copilot.aiu"),
+        "ai_units": ai_units,
     }
 
 
