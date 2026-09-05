@@ -6,7 +6,7 @@ mantenendo revisione, approvazione e decisione finale sotto responsabilità uman
 - **Owner:** team Quality Assurance
 - **Repository:** `pagopa/qe_scope`
 - **Fase:** pilota controllato
-- **Ultima verifica end-to-end:** 4 settembre 2026
+- **Ultima verifica end-to-end:** 5 settembre 2026
 
 ## Scopo
 
@@ -124,6 +124,85 @@ Solo dopo questi controlli la card passa a `Ready for AI`.
 
 La card resta in `Ready for AI` mentre l'agente lavora. L'assenza di un cambio immediato di
 stato non indica da sola un malfunzionamento.
+
+## Telemetria della prima implementazione
+
+Durante `Copilot implement issue`, Copilot CLI esporta una telemetria OpenTelemetry locale senza
+includere il contenuto di prompt e risposte. Il workflow genera due file:
+
+- `copilot-technical-report.json`: riepilogo strutturato della singola esecuzione;
+- `copilot-otel.jsonl`: telemetria grezza da usare solo per verifica e diagnosi.
+
+I file sono pubblicati nell'artifact GitHub Actions
+`copilot-technical-report-<run-id>-<attempt>` e conservati per 7 giorni. Il JSON sintetico è la
+fonte strutturata; il commento Jira ne mostra soltanto un estratto leggibile e non deve essere
+usato come database delle metriche.
+
+Quando la Draft PR viene creata, Jira registra:
+
+- link alla PR e al GitHub Actions run;
+- modello effettivamente osservato, oppure modello richiesto come fallback;
+- input e output token;
+- input token letti dalla cache;
+- numero di turni verso il modello;
+- AI units, quando esposte in una forma riconosciuta.
+
+### Come leggere il commento Jira
+
+| Dato | Significato | Cosa non significa |
+|---|---|---|
+| Modello | Modello effettivamente riportato dalle chiamate LLM; se non disponibile, modello richiesto. | Non garantisce da solo qualità o correttezza della modifica. |
+| Input token | Somma degli input elaborati in tutti i turni della sessione. Il contesto può essere reinviato più volte. | Non è la sola lunghezza della descrizione Jira o del prompt iniziale. |
+| Output token | Somma degli output prodotti dal modello nei diversi turni. | Non corrisponde alle righe di codice aggiunte. |
+| Cache read | Parte degli input token recuperata dalla cache del provider. | Non va sommata nuovamente agli input token e non equivale automaticamente a un risparmio monetario. |
+| Turni | Numero di round-trip tra agente e modello durante l'implementazione. | Non è il numero di interventi umani o di esecuzioni del workflow. |
+| AI units | Unità di consumo Copilot, se disponibili. | Non sono token e non sono necessariamente un costo in euro. |
+| Dettagli tecnici | Run GitHub Actions da cui provengono report e artifact. | Non sostituisce la review della PR. |
+
+I token sono cumulativi: un agente che legge file, modifica codice, controlla il risultato e
+corregge un errore invia al modello un contesto aggiornato a ogni turno. Per questo il numero di
+input token può essere molto maggiore della card Jira. Un valore alto non indica da solo spreco;
+va confrontato con attività simili, stesso modello, stessa versione della CLI ed esito ottenuto.
+
+`non disponibile` significa che il dato non è stato esposto oppure che il parser non ne ha
+riconosciuto la forma. Non significa `0` e non deve entrare nei calcoli come zero.
+
+### Esempio reale validato
+
+La prima verifica, eseguita il 5 settembre 2026 su `QA-17085`, ha prodotto:
+
+```text
+Modello: claude-sonnet-5
+Input token: 145053
+Output token: 2749
+Cache read: 128714 token
+Turni: 11
+AI units: non disponibile
+```
+
+La telemetria grezza contiene un solo span principale `invoke_agent`: i valori non risultano
+quindi duplicati. I `128714` token letti dalla cache sono già compresi nel volume di input e non
+vanno aggiunti ai `145053`. Il report ha misurato circa 31 secondi per l'invocazione Copilot,
+mentre il workflow completo, inclusi controlli e pubblicazione, è durato circa 1 minuto e 50
+secondi.
+
+La versione Copilot CLI osservata era `1.0.83`. L'output reale ha esposto le AI units tramite
+`github.copilot.nano_aiu`, non ancora convertito dal parser del pilota; per questo Jira le ha
+mostrate come non disponibili. Questa differenza deve essere risolta nel parser prima di usare
+le AI units nei report aggregati.
+
+### Uso corretto nel pilota
+
+Usare questi dati per:
+
+- individuare esecuzioni anomale o attività troppo ampie;
+- confrontare tentativi e rework della stessa classe di attività;
+- verificare l'effetto di un cambio di modello o istruzioni;
+- correlare consumo, durata ed esito della review.
+
+Non usare token, turni o righe modificate come misura isolata della produttività dello
+sviluppatore o della qualità del modello. L'esito rilevante resta una modifica corretta,
+comprensibile, verificata e accettata attraverso review umana.
 
 ## Review e merge
 
