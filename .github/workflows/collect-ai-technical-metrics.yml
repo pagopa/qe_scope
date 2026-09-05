@@ -1,7 +1,12 @@
 name: Collect AI technical metrics
 
+run-name: AI technical metrics · ${{ github.event_name }}
+
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 23 * * *"
+      timezone: "Europe/Rome"
 
 concurrency:
   group: collect-ai-technical-metrics

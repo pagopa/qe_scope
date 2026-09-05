@@ -229,6 +229,16 @@ scaricata insieme al dataset dall'artifact e aperta localmente nel browser. La p
 una sintesi per stakeholder e il dettaglio tecnico per singola esecuzione, con filtri e link alle
 evidenze GitHub. In questa fase non è ancora pubblicata tramite GitHub Pages.
 
+Il collector viene eseguito automaticamente ogni giorno alle `23:30` nel fuso
+`Europe/Rome`, seguendo quindi il passaggio tra ora solare e ora legale. GitHub può avviare i
+workflow pianificati con alcuni minuti di ritardo nei momenti di maggiore carico. L'avvio manuale
+resta disponibile per verifiche o aggiornamenti immediati. La schedulazione usa sempre la versione
+del workflow presente sul branch predefinito `main`.
+
+Nei repository pubblici GitHub può disabilitare i workflow pianificati dopo 60 giorni senza
+attività. Il controllo periodico del pilota deve quindi includere la verifica che il workflow
+`Collect AI technical metrics` sia ancora abilitato.
+
 Gli indicatori mostrati includono successo del workflow, produzione e merge delle PR, mediane
 dei tempi osservabili, token, modello e dimensione della modifica. Sono metriche del processo
 tecnico: non dimostrano da sole qualità del codice, produttività individuale, difetti evitati o
