@@ -106,17 +106,17 @@ jobs:
           BASE_BRANCH="${BASE_BRANCH:-main}"
 
           case "$BASE_BRANCH" in
-            main)
+            main|develop)
               ;;
-            release/*)
-              if ! printf '%s' "$BASE_BRANCH" | grep -Eq '^release/[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
+            feature/*|feat/*|release/*|hotfix/*)
+              if ! printf '%s' "$BASE_BRANCH" | grep -Eq '^(feature|feat|release|hotfix)/[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
                 echo "Formato Base branch non autorizzato: $BASE_BRANCH" >&2
                 exit 1
               fi
               ;;
             *)
               echo "Base branch non autorizzato: $BASE_BRANCH" >&2
-              echo "Valori consentiti: main, release/*" >&2
+              echo "Valori consentiti: main, develop, feature/*, feat/*, release/*, hotfix/*" >&2
               exit 1
               ;;
           esac

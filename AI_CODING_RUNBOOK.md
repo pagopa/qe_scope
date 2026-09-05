@@ -100,17 +100,40 @@ L'AI Approver verifica che:
 - [ ] non siano richieste nuove dipendenze o modifiche alla produzione;
 - [ ] non siano presenti credenziali, dati personali o informazioni riservate;
 - [ ] il responsabile umano sia assegnato;
+- [ ] `Base branch` sia valorizzato e appartenga a una famiglia Gitflow autorizzata;
 - [ ] per una nuova attività, `GitHub Issue URL` e `GitHub PR URL` siano vuoti;
 - [ ] per una rilavorazione, issue e PR siano ancora valide e la PR sia aperta;
 - [ ] la card si trovi in `In Progress`.
 
 Solo dopo questi controlli la card passa a `Ready for AI`.
 
+### Base branch della Pull Request
+
+`Base branch` indica il branch GitHub da cui l'agente crea la propria branch `copilot/...` e
+verso cui viene aperta la Draft Pull Request. Non autorizza mai commit diretti sul branch scelto.
+Il valore predefinito è `main`.
+
+Il workflow accetta soltanto i seguenti valori, e verifica comunque che il branch esista davvero
+su GitHub prima di avviare Copilot:
+
+```text
+main
+develop
+feature/*
+feat/*
+release/*
+hotfix/*
+```
+
+Un valore vuoto, inesistente o esterno a queste famiglie interrompe l'esecuzione prima della
+generazione della patch. Le GitHub Issue create prima dell'introduzione del campo restano
+compatibili e usano `main`.
+
 ## Prima implementazione
 
 1. Il passaggio `In Progress → Ready for AI` autorizza l'elaborazione.
 2. Jira crea una GitHub Issue con label `ready-for-ai` e salva il relativo URL nella card.
-3. `Copilot implement issue` legge issue e istruzioni del repository.
+3. `Copilot implement issue` legge issue, `Base branch` e istruzioni del repository.
 4. Copilot genera una modifica in un ambiente senza credenziali Git di scrittura.
 5. Il workflow valida perimetro e dimensione, quindi esegue:
 
@@ -119,7 +142,8 @@ Solo dopo questi controlli la card passa a `Ready for AI`.
    ruff check src/ tests/
    ```
 
-6. Un job separato pubblica il commit su un branch `copilot/issue-*` e crea una Draft PR.
+6. Un job separato pubblica il commit su un branch `copilot/issue-*`, creato dal base branch
+   scelto, e apre una Draft PR verso lo stesso branch.
 7. Jira salva `GitHub PR URL` e porta la card in `In Review`.
 
 La card resta in `Ready for AI` mentre l'agente lavora. L'assenza di un cambio immediato di
@@ -265,11 +289,11 @@ Il reviewer:
 1. legge descrizione, diff e conversazioni della PR;
 2. verifica che lo scope corrisponda alla card Jira;
 3. controlla che `SCOPE CI / required`, test, Ruff e CodeQL siano verdi;
-4. usa `Update branch` se GitHub segnala che il branch è indietro rispetto a `main`;
+4. usa `Update branch` se GitHub segnala che il branch è indietro rispetto al base branch della PR;
 5. porta la PR da Draft a `Ready for review` solo quando è esaminabile;
 6. sceglie `Approve` oppure `Request changes` con indicazioni concrete.
 
-Dopo il merge in `main`, GitHub chiude la issue collegata e invia `pr_merged`; Jira aggiunge
+Dopo il merge nel base branch della PR, GitHub chiude la issue collegata e invia `pr_merged`; Jira aggiunge
 il commento di audit e porta la card in `Done`.
 
 ## Definition of Done
@@ -281,7 +305,7 @@ Una AI Coding Story è completata soltanto quando:
 - [ ] test, Ruff, CodeQL e status check richiesti sono verdi;
 - [ ] non rimangono conversazioni di review irrisolte;
 - [ ] una persona ha valutato il diff e i rischi;
-- [ ] la PR è stata integrata in `main`;
+- [ ] la PR è stata integrata nel proprio base branch autorizzato;
 - [ ] la GitHub Issue è chiusa;
 - [ ] Jira ha registrato il merge ed è passato automaticamente a `Done`.
 
@@ -291,9 +315,11 @@ Una AI Coding Story è completata soltanto quando:
 2. Jira registra reviewer, commento e URL della review, poi riporta la card in `In Progress`.
 3. Il responsabile umano aggiorna la card con le correzioni richieste.
 4. L'AI Approver ricontrolla la card e la riporta in `Ready for AI`.
-5. `Copilot rework pull request` legge la card aggiornata e i commenti GitHub.
-6. Copilot aggiunge un commit alla stessa PR; non ne crea una nuova.
-7. Dopo validazione e pubblicazione, `pr_updated` riporta Jira in `In Review`.
+5. Jira aggiorna la GitHub Issue con la card corrente, incluso modello e base branch, poi avvia
+   `Copilot rework pull request` sulla stessa PR.
+6. Il workflow verifica che il base branch della PR coincida con quello della card e legge i commenti GitHub.
+7. Copilot aggiunge un commit alla stessa PR; non ne crea una nuova.
+8. Dopo validazione e pubblicazione, `pr_updated` riporta Jira in `In Review`.
 
 Il ciclo può ripetersi. Ogni iterazione deve avere feedback specifico; non usare commenti come
 "non va" o "riprova" senza indicare il comportamento da correggere.
