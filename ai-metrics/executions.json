@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-09-05T04:42:46.626797+00:00",
+  "executions": [
+    {
+      "key": "33942685444:1",
+      "ingested_at": "2026-09-05T04:42:46.626797+00:00",
+      "report_generated_at": "2026-09-05T03:45:24.952745+00:00",
+      "repository": "pagopa/qe_scope",
+      "run": {
+        "id": 33942685444,
+        "attempt": 1,
+        "workflow": "Copilot implement issue",
+        "event": "issues",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pagopa/qe_scope/actions/runs/33942685444",
+        "created_at": "2026-09-05T03:44:27Z",
+        "started_at": "2026-09-05T03:44:27Z",
+        "updated_at": "2026-09-05T03:46:17Z",
+        "copilot_duration_seconds": 57.0
+      },
+      "issue": {
+        "number": 38,
+        "jira_key": "QA-17085",
+        "title": "[QA-17085] Rifiutare valori non positivi di SCOPE_RUNTIME_WINDOW",
+        "url": "https://github.com/pagopa/qe_scope/issues/38"
+      },
+      "pull_request": {
+        "number": 39,
+        "url": "https://github.com/pagopa/qe_scope/pull/39",
+        "state": "MERGED",
+        "is_draft": false,
+        "head_ref_name": "copilot/issue-38-33942685444",
+        "created_at": "2026-09-05T03:45:40Z",
+        "updated_at": "2026-09-05T04:04:54Z",
+        "closed_at": "2026-09-05T04:04:54Z",
+        "merged_at": "2026-09-05T04:04:54Z",
+        "review_decision": "REVIEW_REQUIRED",
+        "additions": 47,
+        "deletions": 1,
+        "changed_files": 2
+      },
+      "copilot": {
+        "cli_version": "GitHub Copilot CLI 1.0.83\n\nYou are running the latest version.",
+        "telemetry_status": "fallback_all_invocations",
+        "requested_models": [
+          "claude-sonnet-5"
+        ],
+        "resolved_models": [
+          "claude-sonnet-5"
+        ],
+        "input_tokens": 145053,
+        "output_tokens": 2749,
+        "cache_read_input_tokens": 128714,
+        "cache_creation_input_tokens": null,
+        "turn_count": 11,
+        "cost": 11.0,
+        "ai_units": null
+      }
+    }
+  ]
+}
