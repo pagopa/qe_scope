@@ -39,6 +39,8 @@ class TestPackageVersion(unittest.TestCase):
     """Versione pubblica del package."""
 
     def test_scope_version_is_exposed(self):
+        self.assertIsInstance(scope.__version__, str)
+        self.assertTrue(scope.__version__)
         self.assertEqual(scope.__version__, "1.0.0")
 
 
